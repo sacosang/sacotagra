@@ -521,9 +521,9 @@ html.is-mobile #notifBtn {
   font-size: 1rem !important;
   box-shadow: none !important;
 }
-html.is-mobile .layout { padding-top: 50px !important; }
+html.is-mobile .layout { padding-top: 46px !important; }
 
-/* Tabs : collées au bord, très compactes */
+/* Tabs : plus compactes */
 html.is-mobile .tabs {
   overflow-x: auto !important;
   scrollbar-width: none !important;
@@ -533,34 +533,64 @@ html.is-mobile .tabs {
   border-bottom: 1px solid rgba(42,42,61,0.5) !important;
 }
 html.is-mobile .tabs::-webkit-scrollbar { display: none !important; }
-html.is-mobile .tab { padding: 10px 14px !important; font-size: 0.82rem !important; white-space: nowrap !important; }
+html.is-mobile .tab { padding: 8px 14px !important; font-size: 0.8rem !important; white-space: nowrap !important; }
 
-/* Catégories : plein bord */
+/* Catégories : moins de padding vertical */
 html.is-mobile .cats {
-  padding: 10px 12px 6px !important;
+  padding: 7px 12px 5px !important;
   margin-bottom: 0 !important;
   gap: 7px !important;
 }
-html.is-mobile .cat { padding: 5px 12px !important; font-size: 0.76rem !important; }
+html.is-mobile .cat { padding: 4px 11px !important; font-size: 0.74rem !important; }
 
-/* Hero : compact mais toujours présent */
+/* Hero : tout petit bandeau sur mobile, ne prend pas de place */
 html.is-mobile .hero {
-  height: 190px !important;
+  height: auto !important;
+  min-height: 0 !important;
   border-radius: 0 !important;
-  margin: 0 0 0 0 !important;
+  margin: 0 !important;
   border-left: none !important;
   border-right: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
 }
+html.is-mobile .hero-bg { display: none !important; }
 html.is-mobile .hero-thumb { display: none !important; }
-html.is-mobile .hero h1 { font-size: 1.15rem !important; }
-html.is-mobile .hero p { font-size: 0.8rem !important; }
-html.is-mobile .hero-content { padding: 14px 14px !important; }
-html.is-mobile .hero-badge { font-size: 0.65rem !important; }
-html.is-mobile .hero-actions .btn { padding: 6px 13px !important; font-size: 0.78rem !important; display: inline-flex !important; }
+html.is-mobile .hero-content {
+  position: static !important;
+  background: linear-gradient(135deg, rgba(255,79,31,0.12), rgba(255,140,66,0.06)) !important;
+  border-bottom: 1px solid rgba(255,79,31,0.2) !important;
+  padding: 10px 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+html.is-mobile .hero-badge { display: none !important; }
+html.is-mobile .hero h1 {
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  margin-bottom: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+html.is-mobile .hero p { display: none !important; }
+html.is-mobile .hero-actions {
+  margin-top: 0 !important;
+  flex-shrink: 0 !important;
+}
+html.is-mobile .hero-actions .btn {
+  padding: 5px 12px !important;
+  font-size: 0.75rem !important;
+  display: inline-flex !important;
+  background: var(--accent) !important;
+  color: white !important;
+  box-shadow: none !important;
+}
 
 /* ---- SECTIONS TITRE : bien visibles ---- */
 html.is-mobile .sh {
-  padding: 18px 14px 10px !important;
+  padding: 12px 14px 8px !important;
   margin-bottom: 0 !important;
 }
 html.is-mobile .st {
@@ -696,11 +726,11 @@ html.is-mobile .ti > div:nth-child(3) > div:last-child {
 html.is-mobile #tab-videos { padding: 0 !important; }
 html.is-mobile #tab-posts { padding: 0 !important; }
 html.is-mobile .section-divider {
-  height: 8px;
+  height: 6px;
   background: var(--surface);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  margin: 14px 0 0;
+  margin: 8px 0 0;
   display: block;
 }
 
