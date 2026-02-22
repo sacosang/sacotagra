@@ -1,3 +1,7 @@
+
+bash
+cat /mnt/user-data/outputs/Sacrotaga.html
+Sortie
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -5,6 +9,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sacrotaga — Partage de vidéos</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script>
+// Détection précoce de l'appareil — avant le rendu CSS
+(function(){
+  var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    || (navigator.maxTouchPoints > 1 && window.innerWidth <= 1024);
+  document.documentElement.classList.add(isMobile ? 'is-mobile' : 'is-desktop');
+  // Stocke pour le JS principal
+  window._sacroDevice = isMobile ? 'mobile' : 'desktop';
+})();
+</script>
 <style>
 :root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c28;--border:#2a2a3d;--accent:#ff4f1f;--accent2:#ff8c42;--text:#f0f0f5;--muted:#7a7a95;--radius:12px;}
 *{margin:0;padding:0;box-sizing:border-box;}html{scroll-behavior:smooth;}
@@ -385,11 +399,282 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+
+/* BOTTOM NAV MOBILE */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(10,10,15,0.96);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:0;padding-bottom:env(safe-area-inset-bottom);}
+.bottom-nav-inner{display:flex;align-items:center;justify-content:space-around;}
+.bnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 12px;cursor:pointer;color:var(--muted);transition:color 0.2s;min-width:52px;-webkit-tap-highlight-color:transparent;}
+.bnav-item.active{color:var(--accent);}
+.bnav-item svg{width:22px;height:22px;}
+.bnav-label{font-size:0.6rem;font-family:'Syne',sans-serif;font-weight:600;letter-spacing:0.3px;}
+.bnav-pub{background:var(--accent);border-radius:50%;width:46px;height:46px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(255,79,31,0.5);margin-top:-10px;}
+
 @media(max-width:900px){.posts-layout{grid-template-columns:1fr;}.p-sidebar{display:none;}}
-@media(max-width:768px){.sidebar{display:none;}.main{margin-left:0;padding:16px;}nav{padding:12px 16px;}.nav-search{width:auto;flex:1;margin:0 10px;}.hero{height:220px;}.hero-thumb{display:none;}.hero h1{font-size:1.3rem;}.profile-menu{grid-template-columns:1fr;}}
+
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .bottom-nav{display:flex;flex-direction:column;}
+  .main{margin-left:0;padding:12px 12px 80px 12px;}
+  nav{padding:10px 14px;}
+  .nav-search{width:auto;flex:1;margin:0 8px;}
+  .btn-primary{display:none;}
+  .hero{height:200px;}
+  .hero-thumb{display:none;}
+  .hero h1{font-size:1.2rem;}
+  .hero p{font-size:0.82rem;}
+  .hero-actions .btn{padding:7px 14px;font-size:0.82rem;}
+  .profile-menu{grid-template-columns:1fr 1fr;}
+  .vg{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
+  .ex-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+  .analytics-grid{grid-template-columns:1fr 1fr;}
+  .modal{padding:22px 18px;width:min(420px,95vw);}
+  .player-box{width:100vw;}
+  .player-screen{border-radius:0;}
+  .comments-box{width:100%;border-radius:20px 20px 0 0;}
+  .ci{padding:10px 11px;}
+  .ct{font-size:0.82rem;}
+  .cs{font-size:0.7rem;}
+  .gestion-thumb{width:96px;height:54px;}
+  .gestion-title{font-size:0.88rem;}
+  .tabs{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{padding:11px 16px;font-size:0.82rem;white-space:nowrap;}
+  .cats{gap:7px;}
+  .cat{padding:6px 13px;font-size:0.78rem;}
+  .pg-header{margin-bottom:18px;}
+  .pg-title{font-size:1.2rem;}
+  .profile-header{flex-direction:column;align-items:flex-start;gap:14px;padding:18px;}
+  .profile-stats{gap:16px;}
+  .stat-num{font-size:1rem;}
+  .info-thumb{width:72px;height:41px;}
+  .info-title{font-size:0.83rem;}
+  .settings-row{padding:13px 14px;}
+  .settings-label{font-size:0.88rem;}
+  .notif-box{right:8px;left:8px;width:auto;top:60px;}
+  .sc{width:120px;}
+  .ti{padding:9px;}
+  .tr{font-size:1.2rem;min-width:26px;}
+  .post-card{padding:13px 14px;}
+  .compose-box{padding:14px;}
+  .ch-info{flex-direction:column;align-items:flex-start;gap:10px;padding:0 12px;}
+  .ch-acts{flex-wrap:wrap;gap:7px;}
+}
+
+@media(max-width:480px){
+  .nav-search{display:none;}
+  nav{padding:10px 14px;}
+  .logo{font-size:1.3rem;}
+  #mobileSearchBtn{display:flex !important;}
+  .btn-ghost:not(#mobileSearchBtn){display:none;}
+  .vg{grid-template-columns:1fr 1fr;gap:10px;}
+  .analytics-grid{grid-template-columns:1fr;}
+  .profile-menu{grid-template-columns:1fr 1fr;}
+  .hero{height:180px;}
+  .hero h1{font-size:1.1rem;}
+  .hero-badge{font-size:0.65rem;}
+  .hero-content{padding:16px;}
+  .stat-card{padding:14px;}
+  .stat-card-num{font-size:1.6rem;}
+  .ch-banner{height:120px;}
+  .ch-big-av{width:68px;height:68px;font-size:1.4rem;}
+}
+/* ===== DEVICE DETECTION OVERRIDES ===== */
+
+/* MODE MOBILE : forcer l'interface mobile peu importe la largeur */
+html.is-mobile .sidebar { display: none !important; }
+html.is-mobile .main { margin-left: 0 !important; padding: 0 0 80px 0 !important; }
+html.is-mobile .bottom-nav { display: flex !important; flex-direction: column; }
+
+/* ---- NAV MOBILE : ultra-discrète ---- */
+html.is-mobile nav {
+  padding: 8px 14px !important;
+  background: rgba(10,10,15,0.75) !important;
+  border-bottom: 1px solid rgba(42,42,61,0.4) !important;
+  backdrop-filter: blur(24px) !important;
+}
+html.is-mobile .logo { font-size: 1.15rem !important; }
+html.is-mobile .btn-primary { display: none !important; }
+html.is-mobile .btn-ghost { display: none !important; }
+html.is-mobile #mobileSearchBtn {
+  display: flex !important;
+  background: none !important;
+  border: none !important;
+  color: var(--muted) !important;
+  padding: 6px !important;
+}
+html.is-mobile .nav-avatar {
+  width: 30px !important;
+  height: 30px !important;
+  font-size: 0.72rem !important;
+  border-width: 1px !important;
+}
+html.is-mobile .nav-actions { gap: 6px !important; }
+html.is-mobile .nav-search { display: none !important; }
+/* Notif bell — icône seule, sans background */
+html.is-mobile #notifBtn {
+  background: none !important;
+  border: none !important;
+  padding: 6px !important;
+  font-size: 1rem !important;
+}
+
+html.is-mobile #notifBtn {
+  background: none !important;
+  border: none !important;
+  padding: 6px !important;
+  font-size: 1rem !important;
+  box-shadow: none !important;
+}
+html.is-mobile .layout { padding-top: 50px !important; }
+
+/* Tabs : collées au bord, très compactes */
+html.is-mobile .tabs {
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding: 0 12px !important;
+  margin-bottom: 0 !important;
+  border-bottom: 1px solid rgba(42,42,61,0.5) !important;
+}
+html.is-mobile .tabs::-webkit-scrollbar { display: none !important; }
+html.is-mobile .tab { padding: 10px 14px !important; font-size: 0.82rem !important; white-space: nowrap !important; }
+
+/* Catégories : plein bord */
+html.is-mobile .cats {
+  padding: 10px 12px 6px !important;
+  margin-bottom: 0 !important;
+  gap: 7px !important;
+}
+html.is-mobile .cat { padding: 5px 12px !important; font-size: 0.76rem !important; }
+
+/* Hero : compact mais toujours présent */
+html.is-mobile .hero {
+  height: 190px !important;
+  border-radius: 0 !important;
+  margin: 0 0 0 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+html.is-mobile .hero-thumb { display: none !important; }
+html.is-mobile .hero h1 { font-size: 1.15rem !important; }
+html.is-mobile .hero p { font-size: 0.8rem !important; }
+html.is-mobile .hero-content { padding: 14px 14px !important; }
+html.is-mobile .hero-badge { font-size: 0.65rem !important; }
+html.is-mobile .hero-actions .btn { padding: 6px 13px !important; font-size: 0.78rem !important; display: inline-flex !important; }
+
+/* ---- SECTIONS TITRE : bien visibles ---- */
+html.is-mobile .sh {
+  padding: 16px 14px 10px !important;
+  margin-bottom: 0 !important;
+}
+html.is-mobile .st {
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.2px !important;
+}
+html.is-mobile .sa { font-size: 0.8rem !important; }
+
+/* ---- VIDEO GRID MOBILE : 2 colonnes larges ---- */
+html.is-mobile .vg {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 1px !important;
+  margin-bottom: 0 !important;
+  background: var(--border) !important;
+}
+html.is-mobile .vc {
+  border-radius: 0 !important;
+  border: none !important;
+  background: var(--bg) !important;
+}
+html.is-mobile .vc:hover { transform: none !important; box-shadow: none !important; }
+html.is-mobile .ci { padding: 8px 9px 10px !important; }
+html.is-mobile .ct { font-size: 0.8rem !important; -webkit-line-clamp: 2 !important; }
+html.is-mobile .cs { font-size: 0.68rem !important; }
+html.is-mobile .cav { width: 26px !important; height: 26px !important; font-size: 0.65rem !important; }
+
+/* ---- SHORTS MOBILE : plus hauts, plus larges ---- */
+html.is-mobile .sg {
+  padding: 0 12px 10px !important;
+  gap: 10px !important;
+  margin-bottom: 0 !important;
+}
+html.is-mobile .sc {
+  width: 130px !important;
+  flex-shrink: 0 !important;
+}
+
+/* ---- TRENDING MOBILE ---- */
+html.is-mobile .tl {
+  padding: 0 12px !important;
+  margin-bottom: 0 !important;
+  gap: 8px !important;
+}
+html.is-mobile .ti {
+  border-radius: 10px !important;
+  padding: 10px !important;
+}
+html.is-mobile .tr { font-size: 1.1rem !important; min-width: 24px !important; }
+
+html.is-mobile #tab-videos { padding: 0 !important; }
+html.is-mobile #tab-posts { padding: 0 !important; }
+html.is-mobile .section-divider {
+  height: 8px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin: 14px 0 0;
+  display: block;
+}
+
+html.is-mobile .posts-layout { grid-template-columns: 1fr !important; padding: 0 !important; }
+html.is-mobile .compose-box { border-radius: 0 !important; border-left: none !important; border-right: none !important; margin: 0 !important; }
+html.is-mobile .post-card { padding: 13px 14px !important; }
+html.is-mobile .p-sidebar { display: none !important; }
+
+html.is-mobile .analytics-grid { grid-template-columns: 1fr 1fr !important; padding: 0 12px !important; }
+html.is-mobile .profile-menu { grid-template-columns: 1fr 1fr !important; padding: 0 12px !important; }
+html.is-mobile .profile-header { flex-direction: row !important; align-items: center !important; gap: 14px !important; padding: 16px 14px !important; border-radius: 0 !important; border-left: none !important; border-right: none !important; }
+html.is-mobile .pg-header { padding: 14px 14px 0 !important; margin-bottom: 14px !important; }
+html.is-mobile .ch-info { flex-direction: column !important; align-items: flex-start !important; }
+html.is-mobile .gestion-thumb { width: 96px !important; height: 54px !important; }
+html.is-mobile .notif-box { right: 8px !important; left: 8px !important; width: auto !important; top: 54px !important; }
+html.is-mobile .player-box { width: 100vw !important; }
+html.is-mobile .player-screen { border-radius: 0 !important; }
+html.is-mobile .comments-box { width: 100% !important; border-radius: 20px 20px 0 0 !important; }
+html.is-mobile #page-vous { padding: 0 !important; }
+html.is-mobile #page-vous .profile-menu { padding: 0 12px !important; gap: 10px !important; }
+html.is-mobile #page-vous .sh { padding: 16px 14px 8px !important; }
+html.is-mobile #page-vous #myVideosSection { margin: 0 12px !important; border-radius: 12px !important; }
+
+/* MODE DESKTOP : forcer l'interface desktop peu importe la largeur */
+html.is-desktop .section-divider { display: none !important; }
+html.is-desktop .bottom-nav { display: none !important; }
+html.is-desktop .main { margin-left: 220px !important; padding: 28px 32px !important; }
+html.is-desktop nav { padding: 14px 32px !important; }
+html.is-desktop .btn-primary { display: inline-flex !important; }
+html.is-desktop #mobileSearchBtn { display: none !important; }
+html.is-desktop .nav-search { display: flex !important; width: 360px !important; }
+html.is-desktop .hero { height: 320px !important; }
+html.is-desktop .hero-thumb { display: flex !important; }
+html.is-desktop .posts-layout { grid-template-columns: 1fr 290px !important; }
+html.is-desktop .p-sidebar { display: flex !important; flex-direction: column; gap: 16px !important; }
+html.is-desktop .vg { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)) !important; gap: 20px !important; }
+html.is-desktop .analytics-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important; }
+html.is-desktop .profile-header { flex-direction: row !important; }
+html.is-desktop .profile-menu { grid-template-columns: 1fr 1fr !important; }
+html.is-desktop .btn-ghost { display: inline-flex !important; }
+
+/* BADGE DEVICE (optionnel — supprimable) */
+#deviceBadge{position:fixed;bottom:90px;right:12px;z-index:9999;background:rgba(10,10,15,0.85);border:1px solid var(--border);color:var(--muted);font-size:0.65rem;font-family:'Syne',sans-serif;padding:4px 9px;border-radius:20px;pointer-events:none;transition:opacity 0.5s;}
+html.is-desktop #deviceBadge{bottom:12px;}
+
 </style>
 </head>
 <body>
+
+<!-- BADGE APPAREIL (disparaît après 3s) -->
+<div id="deviceBadge"></div>
 
 <!-- NAV -->
 <nav>
@@ -399,10 +684,39 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
     <input type="text" id="searchInput" placeholder="Rechercher des vidéos, chaînes..." onkeydown="if(event.key==='Enter')doSearch()">
   </div>
   <div class="nav-actions">
+    <button class="btn btn-ghost" style="display:none" id="mobileSearchBtn" onclick="go('recherche')" title="Rechercher"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></button>
     <button class="btn btn-ghost" onclick="openUpload()">+ Publier</button>
-    <button class="btn" style="background:var(--surface2);border:1px solid var(--border);font-size:1.1rem;padding:7px 12px;" onclick="toggleNotifs()" title="Notifications">🔔</button>
+    <button class="btn" id="notifBtn" style="background:var(--surface2);border:1px solid var(--border);font-size:1.1rem;padding:7px 12px;" onclick="toggleNotifs()" title="Notifications">🔔</button>
     <button class="btn btn-primary" onclick="openLogin()">Se connecter</button>
     <div class="nav-avatar" id="navAvatar" onclick="go('vous')">JD</div>
+  </div>
+</nav>
+
+<!-- BOTTOM NAV MOBILE -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <div class="bnav-item active" id="bnav-home" onclick="go('home')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span class="bnav-label">Accueil</span>
+    </div>
+    <div class="bnav-item" id="bnav-explorer" onclick="go('explorer')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <span class="bnav-label">Explorer</span>
+    </div>
+    <div class="bnav-item" onclick="openUpload()">
+      <div class="bnav-pub">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" width="22" height="22"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+      <span class="bnav-label" style="margin-top:2px">Publier</span>
+    </div>
+    <div class="bnav-item" id="bnav-abonnements" onclick="go('abonnements')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="bnav-label">Abonnements</span>
+    </div>
+    <div class="bnav-item" id="bnav-vous" onclick="go('vous')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="bnav-label">Profil</span>
+    </div>
   </div>
 </nav>
 
@@ -471,8 +785,10 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
         </div>
         <div class="sh"><div class="st">🎬 Recommandé</div><span class="sa" onclick="go('explorer')">Tout voir →</span></div>
         <div class="vg" id="videoGrid"></div>
+        <div class="section-divider"></div>
         <div class="sh"><div class="st">⚡ Shorts</div><span class="sa" onclick="go('shorts')">Tout voir →</span></div>
         <div class="sg" id="shortsGrid"></div>
+        <div class="section-divider"></div>
         <div class="sh"><div class="st">🔥 Tendances</div><span class="sa" onclick="go('explorer')">Tout voir →</span></div>
         <div class="tl" id="trendingList"></div>
       </div>
@@ -960,10 +1276,13 @@ let currentComments = [...sampleComments];
 function go(page, param) {
   document.querySelectorAll(".pv").forEach(p => p.classList.remove("active"));
   document.querySelectorAll(".si").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".bnav-item").forEach(s => s.classList.remove("active"));
   const el = document.getElementById("page-" + page);
   if (el) { el.classList.add("active"); window.scrollTo(0,0); }
   const sb = document.getElementById("sb-" + page);
   if (sb) sb.classList.add("active");
+  const bnav = document.getElementById("bnav-" + page);
+  if (bnav) bnav.classList.add("active");
   navHistory.push(page);
   if (page === "channel" && param) buildChannel(param);
   if (page === "explorer") buildExplorer(param);
@@ -1969,6 +2288,12 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closePlayer();close
 
 // ===== INIT =====
 document.addEventListener("DOMContentLoaded", () => {
+  // Afficher badge appareil
+  const badge = document.getElementById("deviceBadge");
+  if (badge) {
+    badge.textContent = window._sacroDevice === 'mobile' ? '📱 Mode Mobile' : '🖥️ Mode Bureau';
+    setTimeout(() => { badge.style.opacity = '0'; setTimeout(() => badge.remove(), 600); }, 3000);
+  }
   applyProfileToUI();
   buildGrid();
   buildShorts();
