@@ -1519,8 +1519,15 @@ function buildChannel(name) {
   document.getElementById("chName").textContent = name;
   document.getElementById("chHandle").textContent = "@" + name.toLowerCase() + "_sacrotaga";
   document.getElementById("chStats").innerHTML = `<span>${ch.subs}</span> abonnés · <span>${ch.videos}</span> vidéos`;
-  document.getElementById("chSubBtn").className = "sub-btn";
-  document.getElementById("chSubBtn").textContent = "S'abonner";
+  const subBtn = document.getElementById("chSubBtn");
+  subBtn.dataset.channel = name;
+  if (isFollowing(name)) {
+    subBtn.className = "sub-btn subbed";
+    subBtn.textContent = "Abonné ✓";
+  } else {
+    subBtn.className = "sub-btn";
+    subBtn.textContent = "S'abonner";
+  }
   const gv = document.getElementById("chVideos"); gv.innerHTML = "";
   allVideos.filter(v=>v.channel===name).concat(allVideos).slice(0,6).forEach(v => gv.appendChild(makeVC(v)));
   document.getElementById("chPlaylists").innerHTML = `<div class="vg">${userPlaylists.map(p=>`<div class="playlist-card" onclick="showToast('🎵 Playlist: ${p.name}')"><div class="playlist-thumb" style="background:linear-gradient(135deg,${p.c1},${p.c2})">${p.emoji}<div class="playlist-count">${p.count} vidéos</div></div><div class="playlist-info"><div class="playlist-name">${p.name}</div><div style="color:var(--muted);font-size:0.78rem">${p.count} vidéos</div></div></div>`).join("")}</div>`;
@@ -1533,11 +1540,46 @@ function chTab(el, tab) {
   if(tab==="chVideos") document.getElementById("chVideos").style.display="grid";
 }
 
+// ── Liste des chaînes suivies (tableau local + partagé) ─────
+let followedChannels = JSON.parse(localStorage.getItem("sacrotaga_follows") || "[]");
+
+function saveFollows() {
+  localStorage.setItem("sacrotaga_follows", JSON.stringify(followedChannels));
+}
+
+function isFollowing(name) {
+  return followedChannels.some(c => c.name === name);
+}
+
 function toggleSub(btn) {
-  const s = btn.classList.toggle("subbed");
-  btn.textContent = s ? "Abonné ✓" : "S'abonner";
-  if(s){ document.getElementById("myFollowCount").textContent = parseInt(document.getElementById("myFollowCount").textContent)+1; }
-  showToast(s ? "🔔 Abonnement activé !" : "Abonnement retiré");
+  const name = btn.dataset.channel || document.getElementById("chName").textContent;
+  const already = isFollowing(name);
+
+  if (already) {
+    followedChannels = followedChannels.filter(c => c.name !== name);
+    btn.classList.remove("subbed");
+    btn.textContent = "S'abonner";
+    showToast("🔕 Abonnement retiré");
+  } else {
+    // Récupérer infos de la chaîne
+    const ch = channels[name] || {};
+    followedChannels.push({
+      name,
+      avatar: ch.avatar || name[0].toUpperCase(),
+      grad: ch.grad || "linear-gradient(135deg,#6f42c1,#ff4f1f)",
+      subs: ch.subs || "0",
+      videos: ch.videos || "0",
+      emoji: ch.emoji || "🎬",
+      followedAt: Date.now()
+    });
+    btn.classList.add("subbed");
+    btn.textContent = "Abonné ✓";
+    showToast("🔔 Abonnement activé !");
+  }
+  saveFollows();
+  // Mettre à jour le compteur profil
+  const fc = document.getElementById("myFollowCount");
+  if (fc) fc.textContent = followedChannels.length;
 }
 
 // ===== EXPLORER =====
@@ -1574,15 +1616,42 @@ function buildShortsPage() {
 // ===== ABONNEMENTS =====
 function buildAbonPage() {
   const g = document.getElementById("abonGrid"); g.innerHTML = "";
-  Object.entries(channels).forEach(([n,ch]) => {
-    const d = document.createElement("div");
-    d.style.cssText = "background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;cursor:pointer;transition:all 0.2s;";
-    d.onclick = () => go("channel", n);
-    d.innerHTML = `<div style="width:56px;height:56px;border-radius:50%;background:${ch.grad};display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:800;font-size:1.1rem;color:white;margin:0 auto 9px">${ch.avatar}</div><div style="font-family:Syne,sans-serif;font-weight:700;font-size:0.88rem;margin-bottom:3px">${n}</div><div style="color:var(--muted);font-size:0.73rem">${ch.subs} abonnés</div>`;
-    g.appendChild(d);
-  });
+
+  if (!followedChannels.length) {
+    g.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted)">
+      <div style="font-size:2.5rem;margin-bottom:12px">📺</div>
+      <div style="font-weight:700;margin-bottom:6px">Aucun abonnement</div>
+      <div style="font-size:0.83rem">Abonnez-vous à des chaînes pour les retrouver ici</div>
+    </div>`;
+  } else {
+    followedChannels.forEach(ch => {
+      const d = document.createElement("div");
+      d.style.cssText = "background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;";
+      d.onclick = () => go("channel", ch.name);
+      d.innerHTML = `
+        <div style="width:52px;height:52px;border-radius:50%;background:${ch.grad};display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:800;font-size:1.1rem;color:white;margin:0 auto 9px;border:2px solid rgba(255,79,31,0.3)">${ch.avatar}</div>
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:0.85rem;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ch.name}</div>
+        <div style="color:var(--muted);font-size:0.7rem;margin-bottom:8px">${ch.subs || "0"} abonnés</div>
+        <button onclick="event.stopPropagation();unsubChannel('${ch.name}',this)" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:0.68rem;padding:3px 10px;border-radius:20px;cursor:pointer;font-family:Syne,sans-serif;font-weight:600;transition:all 0.2s" onmouseover="this.style.borderColor='#f91880';this.style.color='#f91880'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">Abonné ✓</button>`;
+      g.appendChild(d);
+    });
+  }
+
+  // Vidéos des chaînes suivies
   const av = document.getElementById("abonVideos"); av.innerHTML = "";
-  allVideos.forEach(v => av.appendChild(makeVC(v)));
+  const followedNames = followedChannels.map(c => c.name);
+  const followedVideos = allVideos.filter(v => followedNames.includes(v.channel));
+  const toShow = followedVideos.length ? followedVideos : allVideos;
+  toShow.forEach(v => av.appendChild(makeVC(v)));
+}
+
+function unsubChannel(name, btn) {
+  followedChannels = followedChannels.filter(c => c.name !== name);
+  saveFollows();
+  showToast("🔕 Désabonné de " + name);
+  buildAbonPage();
+  const fc = document.getElementById("myFollowCount");
+  if (fc) fc.textContent = followedChannels.length;
 }
 
 // ===== HISTORIQUE =====
@@ -2656,6 +2725,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   buildShorts();
   refreshMyVideosSection();
   initDragDrop();
+  // Mettre à jour le compteur d'abonnements
+  const fc = document.getElementById("myFollowCount");
+  if (fc) fc.textContent = followedChannels.length;
 
   // Restaurer session si déjà connecté
   await restoreSession();
