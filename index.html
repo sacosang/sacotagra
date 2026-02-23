@@ -1020,14 +1020,14 @@ html.is-desktop #deviceBadge{bottom:12px;}
           <span class="mono-badge badge-orange">⚠️ Seuil non atteint</span>
         </div>
         <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
-        <div style="color:var(--muted);font-size:0.8rem">0 / 1 000 abonnés requis pour monétiser</div>
+        <div style="color:var(--muted);font-size:0.8rem">0 / 500 abonnés requis pour monétiser</div>
       </div>
       <div class="mono-card">
         <div class="mono-title">Programme Sacrotaga Partner</div>
         <div class="mono-sub">Conditions d'éligibilité</div>
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
-          <div style="display:flex;align-items:center;gap:10px;font-size:0.88rem"><span style="font-size:1.2rem">👥</span> <span><strong>0 / 1 000</strong> abonnés</span></div>
-          <div style="display:flex;align-items:center;gap:10px;font-size:0.88rem"><span style="font-size:1.2rem">⏱️</span> <span><strong>0 / 4 000</strong> heures de visionnage</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:0.88rem"><span style="font-size:1.2rem">👥</span> <span><strong>0 / 500</strong> abonnés</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:0.88rem"><span style="font-size:1.2rem">❤️</span> <span><strong>0 / 50 000</strong> likes au total</span></div>
           <div style="display:flex;align-items:center;gap:10px;font-size:0.88rem"><span style="font-size:1.2rem">📋</span> <span>Respecter les <strong>conditions d'utilisation</strong></span></div>
         </div>
         <button class="btn btn-ghost" style="margin-top:16px;width:100%" onclick="showToast('📄 Conditions disponibles prochainement')">Voir les conditions</button>
@@ -1060,6 +1060,7 @@ html.is-desktop #deviceBadge{bottom:12px;}
         <div class="settings-group-title">Confidentialité</div>
         <div class="settings-row"><div><div class="settings-label">Profil public</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
         <div class="settings-row"><div><div class="settings-label">Historique de recherche</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row" onclick="doLogout()"><div><div class="settings-label" style="color:var(--accent)">👋 Se déconnecter</div><div class="settings-sub">Quitter votre session</div></div><span style="color:var(--muted)">›</span></div>
         <div class="settings-row" onclick="showToast('🗑️ Données supprimées')"><div><div class="settings-label" style="color:#f91880">Supprimer mon compte</div><div class="settings-sub">Action irréversible</div></div><span style="color:var(--muted)">›</span></div>
       </div>
     </div>
@@ -1186,20 +1187,54 @@ html.is-desktop #deviceBadge{bottom:12px;}
       <div class="login-tab active" onclick="loginTab(this,'loginForm')">Connexion</div>
       <div class="login-tab" onclick="loginTab(this,'registerForm')">Inscription</div>
     </div>
+
+    <!-- CONNEXION -->
     <div class="login-tv active" id="loginForm">
-      <div class="fg"><label class="fl">Email</label><input class="fi" type="email" placeholder="votre@email.com"></div>
-      <div class="fg"><label class="fl">Mot de passe</label><input class="fi" type="password" placeholder="••••••••"></div>
-      <button class="login-btn" onclick="doLogin()">Se connecter</button>
-      <div class="login-divider">ou</div>
-      <button class="social-login-btn" onclick="showToast('🔴 Connexion Google simulée')">🔴 Continuer avec Google</button>
-      <button class="social-login-btn" onclick="showToast('📘 Connexion Facebook simulée')">📘 Continuer avec Facebook</button>
+      <div class="fg">
+        <label class="fl">Email</label>
+        <input class="fi" type="email" id="loginEmail" placeholder="votre@email.com">
+      </div>
+      <div class="fg">
+        <label class="fl">Mot de passe</label>
+        <div style="position:relative">
+          <input class="fi" type="password" id="loginPassword" placeholder="••••••••" style="padding-right:44px" onkeydown="if(event.key==='Enter')doLogin()">
+          <button onclick="togglePwd('loginPassword',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">👁</button>
+        </div>
+      </div>
+      <div id="loginError" style="color:#f91880;font-size:0.82rem;margin-bottom:8px;display:none"></div>
+      <button class="login-btn" id="loginBtn" onclick="doLogin()">Se connecter</button>
     </div>
+
+    <!-- INSCRIPTION -->
     <div class="login-tv" id="registerForm">
-      <div class="fg"><label class="fl">Nom complet</label><input class="fi" type="text" placeholder="Jean Dupont"></div>
-      <div class="fg"><label class="fl">Email</label><input class="fi" type="email" placeholder="votre@email.com"></div>
-      <div class="fg"><label class="fl">Mot de passe</label><input class="fi" type="password" placeholder="••••••••"></div>
-      <div class="fg"><label class="fl">Confirmer</label><input class="fi" type="password" placeholder="••••••••"></div>
-      <button class="login-btn" onclick="doRegister()">Créer mon compte</button>
+      <div class="fg">
+        <label class="fl">Nom affiché</label>
+        <input class="fi" type="text" id="regName" placeholder="Jean Dupont">
+      </div>
+      <div class="fg">
+        <label class="fl">Nom d'utilisateur</label>
+        <div style="position:relative;display:flex;align-items:center">
+          <span style="position:absolute;left:13px;color:var(--muted);font-size:0.9rem">@</span>
+          <input class="fi" type="text" id="regHandle" placeholder="jeandupont" style="padding-left:28px">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Email</label>
+        <input class="fi" type="email" id="regEmail" placeholder="votre@email.com">
+      </div>
+      <div class="fg">
+        <label class="fl">Mot de passe</label>
+        <div style="position:relative">
+          <input class="fi" type="password" id="regPassword" placeholder="Minimum 6 caractères" style="padding-right:44px">
+          <button onclick="togglePwd('regPassword',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">👁</button>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Confirmer le mot de passe</label>
+        <input class="fi" type="password" id="regConfirm" placeholder="••••••••" onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <div id="regError" style="color:#f91880;font-size:0.82rem;margin-bottom:8px;display:none"></div>
+      <button class="login-btn" id="registerBtn" onclick="doRegister()">Créer mon compte</button>
     </div>
   </div>
 </div>
@@ -2024,8 +2059,117 @@ document.addEventListener("click",e=>{const b=document.getElementById("notifBox"
 // ===== CONNEXION =====
 function openLogin(){document.getElementById("loginModal").classList.add("open");}
 function loginTab(el,id){document.querySelectorAll(".login-tab").forEach(t=>t.classList.remove("active"));document.querySelectorAll(".login-tv").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.getElementById(id).classList.add("active");}
-function doLogin(){document.getElementById("loginModal").classList.remove("open");showToast("✅ Connexion réussie ! Bienvenue !");}
-function doRegister(){document.getElementById("loginModal").classList.remove("open");showToast("🎉 Compte créé ! Bienvenue sur Sacrotaga !");}
+function togglePwd(id,btn){const i=document.getElementById(id);i.type=i.type==="password"?"text":"password";btn.textContent=i.type==="password"?"👁":"🙈";}
+
+// Hash simple (non cryptographique, suffisant pour démo)
+async function hashPwd(pwd) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pwd));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+// ── INSCRIPTION ─────────────────────────────────────────────
+async function doRegister() {
+  const name = document.getElementById("regName").value.trim();
+  const handle = document.getElementById("regHandle").value.trim().toLowerCase().replace(/[^a-z0-9_]/g,"");
+  const email = document.getElementById("regEmail").value.trim().toLowerCase();
+  const pwd = document.getElementById("regPassword").value;
+  const confirm = document.getElementById("regConfirm").value;
+  const errEl = document.getElementById("regError");
+  errEl.style.display = "none";
+
+  if (!name || !handle || !email || !pwd) { errEl.textContent = "⚠️ Tous les champs sont obligatoires."; errEl.style.display = "block"; return; }
+  if (pwd.length < 6) { errEl.textContent = "⚠️ Mot de passe trop court (min. 6 caractères)."; errEl.style.display = "block"; return; }
+  if (pwd !== confirm) { errEl.textContent = "⚠️ Les mots de passe ne correspondent pas."; errEl.style.display = "block"; return; }
+  if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) { errEl.textContent = "⚠️ Email invalide."; errEl.style.display = "block"; return; }
+
+  const btn = document.getElementById("registerBtn");
+  btn.textContent = "Création..."; btn.disabled = true;
+
+  // Vérifier si l'email existe déjà
+  let users = await sharedGet("sacrotaga:users") || {};
+  if (users[email]) {
+    errEl.textContent = "⚠️ Cet email est déjà utilisé."; errEl.style.display = "block";
+    btn.textContent = "Créer mon compte"; btn.disabled = false; return;
+  }
+
+  const pwdHash = await hashPwd(pwd);
+  const initials = name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2) || "??";
+  const newUser = { name, handle, email, pwdHash, initials, desc: "", createdAt: Date.now() };
+  users[email] = newUser;
+  await sharedSet("sacrotaga:users", users);
+
+  // Connecter directement
+  await connectUser(newUser);
+  btn.textContent = "Créer mon compte"; btn.disabled = false;
+  document.getElementById("loginModal").classList.remove("open");
+  showToast("🎉 Compte créé ! Bienvenue " + name + " !");
+}
+
+// ── CONNEXION ────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+  const pwd = document.getElementById("loginPassword").value;
+  const errEl = document.getElementById("loginError");
+  errEl.style.display = "none";
+
+  if (!email || !pwd) { errEl.textContent = "⚠️ Email et mot de passe requis."; errEl.style.display = "block"; return; }
+
+  const btn = document.getElementById("loginBtn");
+  btn.textContent = "Connexion..."; btn.disabled = true;
+
+  const users = await sharedGet("sacrotaga:users") || {};
+  const user = users[email];
+
+  if (!user) { errEl.textContent = "❌ Aucun compte avec cet email."; errEl.style.display = "block"; btn.textContent = "Se connecter"; btn.disabled = false; return; }
+
+  const pwdHash = await hashPwd(pwd);
+  if (pwdHash !== user.pwdHash) { errEl.textContent = "❌ Mot de passe incorrect."; errEl.style.display = "block"; btn.textContent = "Se connecter"; btn.disabled = false; return; }
+
+  await connectUser(user);
+  btn.textContent = "Se connecter"; btn.disabled = false;
+  document.getElementById("loginModal").classList.remove("open");
+  showToast("✅ Bienvenue " + user.name + " !");
+}
+
+// ── Appliquer la session utilisateur ─────────────────────────
+async function connectUser(user) {
+  userProfile.name = user.name;
+  userProfile.handle = user.handle;
+  userProfile.initials = user.initials;
+  userProfile.desc = user.desc || "";
+  userProfile.email = user.email;
+  if (user.photoUrl) userProfile.photoUrl = user.photoUrl;
+  saveToStorage();
+  applyProfileToUI();
+  // Changer le bouton nav en nom d'utilisateur
+  const navBtn = document.querySelector("nav .btn-primary");
+  if (navBtn) { navBtn.textContent = "@" + user.handle; navBtn.onclick = () => go("vous"); }
+  // Stocker session locale
+  localStorage.setItem("sacrotaga_session", user.email);
+}
+
+// ── Restaurer session au chargement ──────────────────────────
+async function restoreSession() {
+  const savedEmail = localStorage.getItem("sacrotaga_session");
+  if (!savedEmail) return false;
+  const users = await sharedGet("sacrotaga:users") || {};
+  const user = users[savedEmail];
+  if (!user) { localStorage.removeItem("sacrotaga_session"); return false; }
+  await connectUser(user);
+  return true;
+}
+
+// ── Déconnexion ───────────────────────────────────────────────
+function doLogout() {
+  localStorage.removeItem("sacrotaga_session");
+  localStorage.removeItem("sacrotaga_profile");
+  userProfile = { name: "Jean Dupont", handle: "jeandupont_sacrotaga", initials: "JD", desc: "" };
+  applyProfileToUI();
+  const navBtn = document.querySelector("nav .btn-primary");
+  if (navBtn) { navBtn.textContent = "Se connecter"; navBtn.onclick = openLogin; }
+  showToast("👋 Déconnecté·e avec succès");
+  go("home");
+}
 
 // ===== PROFIL =====
 // ===== STOCKAGE PARTAGÉ — visible par tous les utilisateurs =====
@@ -2461,6 +2605,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   buildShorts();
   refreshMyVideosSection();
   initDragDrop();
+
+  // Restaurer session si déjà connecté
+  await restoreSession();
 
   // Charger contenu partagé (tous les utilisateurs)
   await Promise.all([loadSharedPosts(), loadSharedVideos()]);
