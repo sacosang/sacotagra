@@ -478,50 +478,49 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 
 /* MODE MOBILE : forcer l'interface mobile peu importe la largeur */
 html.is-mobile .sidebar { display: none !important; }
-html.is-mobile .main { margin-left: 0 !important; padding: 0 0 80px 0 !important; }
+html.is-mobile .main { margin-left: 0 !important; padding: 0 0 50px 0 !important; }
 html.is-mobile .bottom-nav { display: flex !important; flex-direction: column; }
 
-/* ---- NAV MOBILE : fond opaque, ZERO blur (cause écran noir sur iOS) ---- */
+/* ---- NAV MOBILE : ultra slim, fond opaque, ZERO blur ---- */
 html.is-mobile nav {
-  padding: 8px 14px !important;
+  padding: 4px 12px !important;
+  min-height: 0 !important;
+  height: 38px !important;
   background: #0a0a0f !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-bottom: 1px solid #2a2a3d !important;
 }
+html.is-mobile .layout { padding-top: 38px !important; }
 html.is-mobile .bottom-nav {
   background: #0a0a0f !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 html.is-mobile .bottom-nav-inner {
-  height: 52px !important;
+  height: 44px !important;
 }
 html.is-mobile .bnav-item {
-  padding: 6px 8px !important;
-  gap: 2px !important;
-  min-width: 40px !important;
+  padding: 4px 6px !important;
+  gap: 1px !important;
+  min-width: 36px !important;
 }
 html.is-mobile .bnav-item svg {
-  width: 20px !important;
-  height: 20px !important;
-}
-html.is-mobile .bnav-label {
-  font-size: 0.55rem !important;
-}
-html.is-mobile .bnav-pub {
-  width: 38px !important;
-  height: 38px !important;
-  margin-top: 0 !important;
-  box-shadow: 0 0 12px rgba(255,79,31,0.4) !important;
-}
-html.is-mobile .bnav-pub svg {
   width: 18px !important;
   height: 18px !important;
 }
-html.is-mobile .main {
-  margin-left: 0 !important;
-  padding: 0 0 60px 0 !important;
+html.is-mobile .bnav-label {
+  font-size: 0.5rem !important;
+}
+html.is-mobile .bnav-pub {
+  width: 32px !important;
+  height: 32px !important;
+  margin-top: 0 !important;
+  box-shadow: 0 0 10px rgba(255,79,31,0.4) !important;
+}
+html.is-mobile .bnav-pub svg {
+  width: 16px !important;
+  height: 16px !important;
 }
 html.is-mobile .logo { font-size: 1.15rem !important; }
 html.is-mobile .btn-primary { display: none !important; }
@@ -548,7 +547,7 @@ html.is-mobile #notifBtn {
   font-size: 1rem !important;
   box-shadow: none !important;
 }
-html.is-mobile .layout { padding-top: 46px !important; }
+
 
 /* Tabs */
 html.is-mobile .tabs {
