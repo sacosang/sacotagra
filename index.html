@@ -708,7 +708,17 @@ html.is-mobile .ex-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !
 html.is-mobile .ex-label { font-size: 0.88rem !important; }
 html.is-mobile .notif-box { right: 8px !important; left: 8px !important; width: auto !important; top: 54px !important; }
 html.is-mobile .player-box { width: 100vw !important; }
-html.is-mobile .player-screen { border-radius: 0 !important; }
+html.is-mobile .player-screen {
+  border-radius: 0 !important;
+  aspect-ratio: 16/9 !important;
+  max-height: 56vw !important;
+  background: #0a0a0f !important;
+}
+html.is-mobile .player-overlay {
+  background: rgba(0,0,0,0.96) !important;
+  align-items: flex-start !important;
+  padding-top: 50px !important;
+}
 html.is-mobile .comments-box { width: 100% !important; border-radius: 20px 20px 0 0 !important; }
 html.is-mobile #page-vous { padding: 0 !important; }
 html.is-mobile #page-vous .profile-menu { padding: 0 12px !important; gap: 10px !important; }
@@ -1348,9 +1358,22 @@ const channels = {
   "Sacosang": {grad:"linear-gradient(135deg,#ff4f1f,#ff8c42)",avatar:"SC",banner:"linear-gradient(135deg,#ff4f1f,#ff8c42)",emoji:"🔥",subs:"0",videos:"0",desc:"Bienvenue sur Sacosang — la chaîne officielle de la plateforme Sacrotaga."},
 };
 
-const allVideos = [];
+const allVideos = [
+  {_id:"demo1", title:"Comment débuter sur Sacrotaga 🚀", channel:"Équipe Sacrotaga", views:"1,2 K", time:"il y a 2j", duration:"4:32", emoji:"🚀", c1:"#ff4f1f", c2:"#ff8c42", timestamp:Date.now()-200000},
+  {_id:"demo2", title:"Top 10 astuces gaming que tu dois connaître", channel:"GamerPro", views:"8,4 K", time:"il y a 5h", duration:"12:18", emoji:"🎮", c1:"#0f0c29", c2:"#302b63", timestamp:Date.now()-180000},
+  {_id:"demo3", title:"Recette raclette facile et rapide 🧀", channel:"CuisineSimple", views:"3,1 K", time:"il y a 1j", duration:"6:44", emoji:"🧀", c1:"#134e5e", c2:"#71b280", timestamp:Date.now()-160000},
+  {_id:"demo4", title:"Voyage à Tokyo — Jour 1 ✈️", channel:"NomadeVibes", views:"15 K", time:"il y a 3j", duration:"18:02", emoji:"✈️", c1:"#2d1b69", c2:"#11998e", timestamp:Date.now()-140000},
+  {_id:"demo5", title:"Apprendre JS en 30 minutes", channel:"CodeFast", views:"22 K", time:"il y a 1 sem", duration:"29:55", emoji:"💻", c1:"#1a1a2e", c2:"#16213e", timestamp:Date.now()-120000},
+  {_id:"demo6", title:"Routine matinale productivité ☀️", channel:"MotivDaily", views:"6,7 K", time:"il y a 4j", duration:"8:21", emoji:"☀️", c1:"#f7971e", c2:"#ffd200", timestamp:Date.now()-100000},
+];
 
-const allShorts = [];
+const allShorts = [
+  {title:"Trick incroyable 🔥", views:"45 K", emoji:"🔥", c1:"#ff4f1f", c2:"#ff0080"},
+  {title:"Recette en 60s 🍕", views:"12 K", emoji:"🍕", c1:"#134e5e", c2:"#71b280"},
+  {title:"Life hack du jour ⚡", views:"8 K", emoji:"⚡", c1:"#0f0c29", c2:"#302b63"},
+  {title:"Challenge accepté 😂", views:"31 K", emoji:"😂", c1:"#2d1b69", c2:"#11998e"},
+  {title:"Sunset timelapse 🌅", views:"19 K", emoji:"🌅", c1:"#f7971e", c2:"#ffd200"},
+];
 
 const postsData = [];
 
