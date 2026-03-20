@@ -698,12 +698,7 @@ html.is-desktop #deviceBadge{bottom:12px;}
       <div class="si" id="sb-playlists" onclick="go('playlists')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Playlists</div>
       <div class="si" id="sb-aimes" onclick="go('aimes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Aimées</div>
     </div>
-    <div class="sidebar-section">
-      <div class="sidebar-label">Top Chaînes</div>
-      <div class="si" onclick="go('channel','Sacosang')">
-        <div class="ch-av" style="background:linear-gradient(135deg,#ff4f1f,#ff8c42)">SC</div>Sacosang
-      </div>
-    </div>
+
     <div class="sidebar-section">
       <div class="sidebar-label">Explorer</div>
       <div class="si" id="sb-explorer" onclick="go('explorer')">🔥 Explorer</div>
@@ -1173,7 +1168,7 @@ html.is-desktop #deviceBadge{bottom:12px;}
         <button class="pla" onclick="shareVideo()">↗ Partager</button>
         <button class="pla" onclick="saveVideo()">+ Sauvegarder</button>
         <button class="pla" onclick="openComments()">💬 Commentaires</button>
-        <button class="pla" onclick="showToast('🔔 Abonné à la chaîne !')">🔔 S'abonner</button>
+        <button class="pla" id="playerSubBtn" onclick="togglePlayerSub()">🔔 S'abonner</button>
       </div>
     </div>
   </div>
@@ -1227,18 +1222,9 @@ html.is-desktop #deviceBadge{bottom:12px;}
 
 <script>
 // ===== DATA =====
-const channels = {
-  "Sacosang": {grad:"linear-gradient(135deg,#ff4f1f,#ff8c42)",avatar:"SC",banner:"linear-gradient(135deg,#ff4f1f,#ff8c42)",emoji:"🔥",subs:"0",videos:"0",desc:"Bienvenue sur Sacosang — la chaîne officielle de la plateforme Sacrotaga."},
-};
+const channels = {};
 
-const allVideos = [
-  {_id:"demo1", title:"Comment débuter sur Sacrotaga 🚀", channel:"Équipe Sacrotaga", views:"1,2 K", time:"il y a 2j", duration:"4:32", emoji:"🚀", c1:"#ff4f1f", c2:"#ff8c42", timestamp:Date.now()-200000},
-  {_id:"demo2", title:"Top 10 astuces gaming que tu dois connaître", channel:"GamerPro", views:"8,4 K", time:"il y a 5h", duration:"12:18", emoji:"🎮", c1:"#0f0c29", c2:"#302b63", timestamp:Date.now()-180000},
-  {_id:"demo3", title:"Recette raclette facile et rapide 🧀", channel:"CuisineSimple", views:"3,1 K", time:"il y a 1j", duration:"6:44", emoji:"🧀", c1:"#134e5e", c2:"#71b280", timestamp:Date.now()-160000},
-  {_id:"demo4", title:"Voyage à Tokyo — Jour 1 ✈️", channel:"NomadeVibes", views:"15 K", time:"il y a 3j", duration:"18:02", emoji:"✈️", c1:"#2d1b69", c2:"#11998e", timestamp:Date.now()-140000},
-  {_id:"demo5", title:"Apprendre JS en 30 minutes", channel:"CodeFast", views:"22 K", time:"il y a 1 sem", duration:"29:55", emoji:"💻", c1:"#1a1a2e", c2:"#16213e", timestamp:Date.now()-120000},
-  {_id:"demo6", title:"Routine matinale productivité ☀️", channel:"MotivDaily", views:"6,7 K", time:"il y a 4j", duration:"8:21", emoji:"☀️", c1:"#f7971e", c2:"#ffd200", timestamp:Date.now()-100000},
-];
+const allVideos = [];
 
 const allShorts = [
   {title:"Trick incroyable 🔥", views:"45 K", emoji:"🔥", c1:"#ff4f1f", c2:"#ff0080"},
@@ -1266,7 +1252,7 @@ const sampleComments = [];
 // ===== STATE =====
 let navHistory = ["home"];
 let userPosts = [];
-let likedVideos = [];
+let likedVideos = JSON.parse(localStorage.getItem("sacrotaga_liked") || "[]");
 let watchHistory = [];
 let myVideos = [];
 let userPlaylists = [
@@ -1327,17 +1313,26 @@ function makeVC(v, idx) {
   const bgContent = thumb
     ? `<img src="${thumb}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">`
     : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,${v.c1},${v.c2})"></div><div class="th-inner"><div style="font-size:2.6rem;position:relative;z-index:1">${v.emoji}</div></div>`;
-  d.innerHTML = `<div class="th">${bgContent}<div class="po"><div class="pb"><svg viewBox="0 0 24 24" fill="white" width="18"><path d="M8 5v14l11-7z"/></svg></div></div>${hasReal?'<div style="position:absolute;top:7px;left:7px;background:var(--accent);color:white;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:4px">▶ LISIBLE</div>':''}<div class="dur">${v.duration}</div></div><div class="ci"><div class="ch"><div class="cav" style="background:linear-gradient(135deg,${v.c1},${v.c2})" onclick="event.stopPropagation();go('channel','${v.channel}')">${chI}</div><div class="cm"><div class="ct">${v.title}</div><div class="cs"><span>${v.channel}</span><span>${v.views} vues</span><span>${v.time}</span></div></div></div></div>`;
+  d.innerHTML = `<div class="th">${bgContent}<div class="po"><div class="pb"><svg viewBox="0 0 24 24" fill="white" width="18"><path d="M8 5v14l11-7z"/></svg></div></div>${hasReal?'<div style="position:absolute;top:7px;left:7px;background:var(--accent);color:white;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:4px">▶ LISIBLE</div>':''}<div class="dur">${v.duration}</div></div><div class="ci"><div class="ch"><div class="cav" style="background:linear-gradient(135deg,${v.c1},${v.c2})" onclick="event.stopPropagation();go('channel','${v.channel}')">${chI}</div><div class="cm"><div class="ct">${v.title}</div><div class="cs"><span>${v.channel}</span><span>${v.views||"0"} vues</span><span>❤️ ${v.likes||0}</span><span>💬 ${v.comments||0}</span><span>${v.time}</span></div></div></div></div>`;
   return d;
 }
 
 function buildGrid() {
   const g = document.getElementById("videoGrid"); g.innerHTML = "";
-  allVideos.slice(0,6).forEach((v,i) => g.appendChild(makeVC(v,i)));
+  if (!allVideos.length) {
+    g.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted)">
+      <div style="font-size:3rem;margin-bottom:14px">🎬</div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:6px">Aucune vidéo pour l'instant</div>
+      <div style="font-size:0.83rem">Soyez le premier à publier du contenu !</div>
+    </div>`;
+    return;
+  }
+  allVideos.slice(0,12).forEach((v,i) => g.appendChild(makeVC(v,i)));
 }
 
 function buildShorts() {
   const g = document.getElementById("shortsGrid"); g.innerHTML = "";
+  if (!allShorts.length) return;
   allShorts.forEach(s => {
     const c = document.createElement("div"); c.className = "sc";
     c.onclick = () => playVideo(s.title, s.views + " vues", s.emoji, s.c1, s.c2);
@@ -1363,7 +1358,9 @@ function buildChannel(name) {
   const av = document.getElementById("chAv"); av.style.background = ch.grad; av.textContent = ch.avatar;
   document.getElementById("chName").textContent = name;
   document.getElementById("chHandle").textContent = "@" + name.toLowerCase() + "_sacrotaga";
-  document.getElementById("chStats").innerHTML = `<span>${ch.subs}</span> abonnés · <span>${ch.videos}</span> vidéos`;
+  // Compter les vrais abonnés (utilisateurs qui suivent cette chaîne)
+  const chVidCount = allVideos.filter(v => v.channel === name).length;
+  document.getElementById("chStats").innerHTML = `<span>${ch.subs||"0"}</span> abonnés · <span>${chVidCount}</span> vidéos`;
   const subBtn = document.getElementById("chSubBtn");
   subBtn.dataset.channel = name;
   if (isFollowing(name)) {
@@ -1420,6 +1417,12 @@ function toggleSub(btn) {
     btn.classList.add("subbed");
     btn.textContent = "Abonné ✓";
     showToast("🔔 Abonnement activé !");
+    // Incrémenter compteur abonnés sur la chaîne
+    const vidsByChannel = allVideos.filter(v => v.channel === name);
+    if (vidsByChannel.length) {
+      vidsByChannel.forEach(v => { v.channelSubs = (v.channelSubs || 0) + 1; });
+      saveSharedVideos();
+    }
   }
   saveFollows();
   // Mettre à jour le compteur profil
@@ -1604,8 +1607,23 @@ function playVideo(title, meta, icon, c1="#1a1a2e", c2="#302b63", blobUrl=null) 
   currentVideoTitle = title;
   document.getElementById("playerTitle").textContent = title;
   document.getElementById("playerMeta").textContent = meta;
-  document.getElementById("likeBtn").classList.remove("liked");
-  document.getElementById("likeCount").textContent = "12 K";
+  const likeBtn = document.getElementById("likeBtn");
+  likeBtn.classList.remove("liked");
+  // Mettre à jour bouton S'abonner
+  setTimeout(() => {
+    const psb = document.getElementById("playerSubBtn");
+    if (psb) {
+      const vid2 = allVideos.find(v => v.title === title);
+      if (vid2 && isFollowing(vid2.channel)) {
+        psb.textContent = "✅ Abonné·e"; psb.classList.add("liked");
+      } else {
+        psb.textContent = "🔔 S'abonner"; psb.classList.remove("liked");
+      }
+    }
+  }, 50);
+  const vidObj = allVideos.find(v => v.title === title);
+  const lk = vidObj ? (vidObj.likes || 0) : 0;
+  document.getElementById("likeCount").textContent = lk >= 1000 ? (lk/1000).toFixed(1)+" K" : String(lk);
   document.getElementById("playerOverlay").classList.add("open");
 
   // Chercher un blob URL sauvegardé pour cette vidéo
@@ -1624,7 +1642,6 @@ function playVideo(title, meta, icon, c1="#1a1a2e", c2="#302b63", blobUrl=null) 
     realVideo.play().catch(()=>{});
     playing = true;
     clearInterval(progressInterval);
-    window.speechSynthesis && window.speechSynthesis.cancel();
   } else {
     // Mode démo animé
     realVideo.pause();
@@ -1649,7 +1666,6 @@ function playVideo(title, meta, icon, c1="#1a1a2e", c2="#302b63", blobUrl=null) 
     document.getElementById("playPauseBtn").textContent = "⏸";
     playing = true;
     startProgress();
-    speakVideo(icon, title);
   }
 
   // Trouver l'index dans allVideos pour prev/next
@@ -1663,13 +1679,12 @@ function closePlayer() {
   document.getElementById("playerOverlay").classList.remove("open");
   clearInterval(progressInterval);
   playing = false;
-  window.speechSynthesis && window.speechSynthesis.cancel();
 }
 
 function togglePlay(btn) {
   playing = !playing; btn.textContent = playing ? "⏸" : "▶";
-  if (playing) { startProgress(); window.speechSynthesis && window.speechSynthesis.resume(); }
-  else { clearInterval(progressInterval); window.speechSynthesis && window.speechSynthesis.pause(); }
+  if (playing) { startProgress(); }
+  else { clearInterval(progressInterval); }
 }
 
 function toggleMute(btn) {
@@ -1714,16 +1729,51 @@ function seekVideo(e, bar) {
 
 function fmt(s) { return Math.floor(s/60)+":"+(s%60).toString().padStart(2,"0"); }
 
-function likeVideo(btn) {
+async function likeVideo(btn) {
   const liked = btn.classList.toggle("liked");
   const sp = document.getElementById("likeCount");
-  const n = parseInt(sp.textContent.replace(" K",""))*1000 || 12000;
-  sp.textContent = liked ? Math.round((n+1)/1000)+" K" : "12 K";
-  if (liked) { likedVideos.unshift(allVideos[0]); showToast("❤️ Vidéo ajoutée aux aimées !"); }
-  else showToast("💔 Retiré des aimées");
+  const n = parseInt(sp.textContent.replace(/[^0-9]/g,"")) || 0;
+  const newCount = liked ? n + 1 : Math.max(0, n - 1);
+  sp.textContent = newCount >= 1000 ? (newCount/1000).toFixed(1)+" K" : String(newCount);
+  const currentVid = allVideos.find(v => v.title === currentVideoTitle);
+  if (currentVid) {
+    currentVid.likes = newCount;
+    if (liked) {
+      likedVideos = likedVideos.filter(v => v.title !== currentVid.title);
+      likedVideos.unshift(currentVid);
+      showToast("❤️ Vidéo ajoutée aux aimées !");
+    } else {
+      likedVideos = likedVideos.filter(v => v.title !== currentVid.title);
+      showToast("💔 Retiré des aimées");
+    }
+    localStorage.setItem("sacrotaga_liked", JSON.stringify(likedVideos));
+    await saveSharedVideos();
+  }
 }
 
 function dislikeVideo(btn) { btn.style.color="var(--accent)"; showToast("👎 Merci pour votre retour"); }
+
+function togglePlayerSub() {
+  const vid = allVideos.find(v => v.title === currentVideoTitle);
+  const channelName = vid ? vid.channel : null;
+  if (!channelName) return;
+  const btn = document.getElementById("playerSubBtn");
+  const already = isFollowing(channelName);
+  if (already) {
+    followedChannels = followedChannels.filter(c => c.name !== channelName);
+    btn.textContent = "🔔 S'abonner";
+    btn.classList.remove("liked");
+    showToast("🔕 Désabonné de " + channelName);
+  } else {
+    followedChannels.push({ name: channelName, avatar: channelName.slice(0,2).toUpperCase(), grad: "linear-gradient(135deg,#6f42c1,#ff4f1f)", followedAt: Date.now() });
+    btn.textContent = "✅ Abonné·e";
+    btn.classList.add("liked");
+    showToast("🔔 Abonné à " + channelName + " !");
+  }
+  saveFollows();
+  const fc = document.getElementById("myFollowCount");
+  if (fc) fc.textContent = followedChannels.length;
+}
 
 function shareVideo() {
   if (navigator.clipboard) { navigator.clipboard.writeText(window.location.href); showToast("↗ Lien copié dans le presse-papiers !"); }
@@ -1736,8 +1786,12 @@ function saveVideo() {
 }
 
 // ===== COMMENTAIRES =====
-function openComments() {
+async function openComments() {
   document.getElementById("commentsModal").classList.add("open");
+  // Charger commentaires partagés pour cette vidéo
+  const key = "sacrotaga:comments:" + encodeURIComponent(currentVideoTitle);
+  const saved = await sharedGet(key);
+  if (saved && Array.isArray(saved)) currentComments = saved;
   document.getElementById("commentCount").textContent = "(" + currentComments.length + ")";
   renderComments();
 }
@@ -1748,7 +1802,8 @@ function renderComments() {
   const b = document.getElementById("commentsBody"); b.innerHTML = "";
   currentComments.forEach(c => {
     const d = document.createElement("div"); d.className = "comment-item";
-    d.innerHTML = `<div class="comment-av" style="background:${c.color}">${c.av}</div><div class="comment-right"><div class="comment-name">${c.name} <span style="color:var(--muted);font-weight:400;font-size:0.78rem">${c.time}</span></div><div class="comment-text">${c.text}</div><div class="comment-actions"><button class="comment-like" onclick="likeComment(this, ${c.likes})">👍 ${c.likes}</button><button class="comment-like" onclick="showToast('💬 Réponse simulée')">Répondre</button></div></div>`;
+    const avHtml = c.photo ? `<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : c.av;
+    d.innerHTML = `<div class="comment-av" style="background:${c.color}">${avHtml}</div><div class="comment-right"><div class="comment-name">${c.name} <span style="color:var(--muted);font-weight:400;font-size:0.78rem">${c.time}</span></div><div class="comment-text">${c.text}</div><div class="comment-actions"><button class="comment-like" onclick="likeComment(this, ${c.likes})">👍 ${c.likes}</button><button class="comment-like" onclick="showToast('💬 Réponse simulée')">Répondre</button></div></div>`;
     b.appendChild(d);
   });
 }
@@ -1759,49 +1814,31 @@ function likeComment(btn, base) {
   btn.textContent = "👍 " + (liked ? base : base+1);
 }
 
-function sendComment() {
+async function sendComment() {
   const input = document.getElementById("commentInput");
-  const text = input.value.trim();
-  if (!text) return;
-  currentComments.unshift({av:userProfile.initials,color:"linear-gradient(135deg,#6f42c1,#ff4f1f)",name:userProfile.name,text,time:"maintenant",likes:0});
+  const text = input.value.trim(); if (!text) return;
   input.value = "";
-  document.getElementById("commentCount").textContent = "(" + currentComments.length + ")";
+  const comment = {
+    av: userProfile.initials,
+    photo: userProfile.photoUrl || null,
+    color: "linear-gradient(135deg,#6f42c1,#ff4f1f)",
+    name: userProfile.name,
+    text,
+    time: "maintenant",
+    likes: 0,
+    timestamp: Date.now()
+  };
+  currentComments.unshift(comment);
   renderComments();
+  document.getElementById("commentCount").textContent = "(" + currentComments.length + ")";
   showToast("💬 Commentaire publié !");
+  // Sauvegarder partagé
+  const key = "sacrotaga:comments:" + encodeURIComponent(currentVideoTitle);
+  await sharedSet(key, currentComments);
+  // Mettre à jour le compteur sur la vidéo
+  const vid = allVideos.find(v => v.title === currentVideoTitle);
+  if (vid) { vid.comments = currentComments.length; await saveSharedVideos(); }
 }
-
-// ===== SPEECH =====
-const videoDescriptions = {
-  "🎮":"Bienvenue sur cette vidéo de gaming ! On va créer un jeu vidéo complet en vingt-quatre heures !",
-  "🍜":"Bonjour ! Aujourd'hui la recette de ramen maison. C'est plus simple qu'on ne le croit !",
-  "📱":"Salut ! On compare cinq smartphones. La réponse va vous surprendre.",
-  "🗼":"Hello les voyageurs ! Direction Tokyo pour un guide complet.",
-  "🎹":"Bonsoir, bienvenue dans cette session live de jazz au piano.",
-  "🪵":"Bonjour ! On part d'une bûche pour créer une statue en bois.",
-  "🤖":"Salut ! On parle d'intelligence artificielle en deux mille vingt-cinq.",
-  "⚽":"Bonsoir les fans ! En direct pour la finale de la Ligue des Champions !",
-  "✈️":"Coucou ! Tour du monde avec cinq cents euros. Je vous explique tout !",
-  "🎧":"Bienvenue dans votre session de détente. Musique lofi pour vous accompagner.",
-  "🎵":"Bonsoir ! Bienvenue au SacroFest pour le concert de clôture !",
-};
-
-function speakVideo(emoji, title) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const text = videoDescriptions[emoji] || ("Bienvenue ! Vous regardez : " + title);
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang="fr-FR"; u.rate=1.05; u.volume=1.0;
-  const voices = window.speechSynthesis.getVoices();
-  const fr = voices.find(v=>v.lang==="fr-FR"&&v.localService)||voices.find(v=>v.lang==="fr-FR")||voices.find(v=>v.lang.startsWith("fr"));
-  if (fr) u.voice=fr;
-  window.speechSynthesis.speak(u);
-}
-if(window.speechSynthesis){window.speechSynthesis.getVoices();window.speechSynthesis.addEventListener("voiceschanged",()=>window.speechSynthesis.getVoices());}
-
-// ===== UPLOAD =====
-let selectedFile = null;
-let selectedThumb = null;  // fichier image miniature
-let selectedThumbUrl = null; // blob URL de la miniature
 
 function handleThumbSelect(files) {
   if (!files || !files.length) return;
