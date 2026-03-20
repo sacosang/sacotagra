@@ -1022,11 +1022,17 @@ html.is-desktop #deviceBadge{bottom:12px;}
       </div>
     </div>
 
+    <div class="fg"><label class="fl">Type de contenu</label>
+      <select class="fi" id="contentType" onchange="updateContentType(this.value)">
+        <option value="video">🎬 Vidéo classique</option>
+        <option value="short">⚡ Short (vertical, max 60s)</option>
+      </select>
+    </div>
     <div class="fg"><label class="fl">Catégorie</label><select class="fi"><option>Musique</option><option>Gaming</option><option>Technologie</option><option>Cuisine</option><option>Sport</option><option>Art</option><option>Voyage</option></select></div>
     <div class="fg"><label class="fl">Visibilité</label><select class="fi"><option>Public</option><option>Non répertorié</option><option>Privé</option></select></div>
     <div class="modal-acts">
       <button class="btn btn-ghost" onclick="closeUpload()">Annuler</button>
-      <button class="btn btn-primary" onclick="publishVideo()">Publier</button>
+      <button class="btn btn-primary" id="publishBtn" onclick="publishContent()">Publier</button>
     </div>
   </div>
 </div>
@@ -1956,7 +1962,33 @@ function initDragDrop() {
   }
 }
 
-function publishVideo(){
+function updateContentType(val) {
+  const btn = document.getElementById("publishBtn");
+  if (btn) btn.textContent = val === "short" ? "⚡ Publier le Short" : "🎬 Publier la vidéo";
+}
+
+async function publishContent() {
+  const type = document.getElementById("contentType")?.value || "video";
+  if (type === "short") await publishShort();
+  else await publishVideo();
+}
+
+async function publishShort(){
+  const title = document.getElementById("uploadTitle").value.trim() || "Mon Short";
+  const emojis = ["🔥","⚡","😂","🎵","💃","🏆","✨","🎯","💥","🚀"];
+  const emoji = emojis[Math.floor(Math.random()*emojis.length)];
+  const colors = [["#ff4f1f","#ff0080"],["#0f0c29","#302b63"],["#134e5e","#71b280"],["#f7971e","#ffd200"],["#2d1b69","#11998e"]];
+  const [c1,c2] = colors[Math.floor(Math.random()*colors.length)];
+  const newS = { _id: Date.now()+"_"+Math.random().toString(36).slice(2), title, views:"0", emoji, c1, c2, channel: userProfile.name, timestamp: Date.now() };
+  allShorts.push(newS);
+  buildShorts();
+  closeUpload();
+  showToast("⚡ Short publié !");
+  saveToStorage();
+  await saveSharedShorts();
+}
+
+async function publishVideo(){
   const title = document.getElementById("uploadTitle").value.trim() || (selectedFile ? selectedFile.name.replace(/\.[^.]+$/,"") : "Ma nouvelle vidéo");
   const emojis = ["🎬","🎮","🎵","🍳","📱","✈️","🎨","🔬","⚽","🪵"];
   const emoji = emojis[Math.floor(Math.random()*emojis.length)];
@@ -1980,7 +2012,8 @@ function publishVideo(){
   showToast("✅ Vidéo publiée : " + title);
   saveToStorage();
   // Sauvegarder pour tous les utilisateurs
-  saveSharedVideos();
+  await saveSharedVideos();
+  showToast("✅ Vidéo enregistrée et visible par tous !");
 }
 
 // ===== POSTS =====
@@ -2207,16 +2240,55 @@ function loadFromStorage() {
   } catch(e) {}
 }
 
-// ── Stockage partagé (window.storage avec shared:true) ──────
-async function sharedGet(key) {
+// ── Stockage persistant (JSONBin pour partage multi-appareils) ──────
+// JSONBin.io : API gratuite, stockage JSON public
+const JSONBIN_BASE = "https://api.jsonbin.io/v3/b";
+const JSONBIN_KEY = "$2a$10$SacrotagaPublicKeyXXXXXXXXXXXXXXXXX"; // clé publique
+
+// IDs des bins (créés automatiquement au premier enregistrement)
+let BIN_IDS = JSON.parse(localStorage.getItem("sacrotaga_bins") || "{}");
+
+async function ensureBin(name) {
+  if (BIN_IDS[name]) return BIN_IDS[name];
   try {
-    const r = await window.storage.get(key, true);
-    return r ? JSON.parse(r.value) : null;
+    const r = await fetch(JSONBIN_BASE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Bin-Name": "sacrotaga_" + name, "X-Bin-Public": "true" },
+      body: JSON.stringify([])
+    });
+    const j = await r.json();
+    const id = j.metadata?.id;
+    if (id) { BIN_IDS[name] = id; localStorage.setItem("sacrotaga_bins", JSON.stringify(BIN_IDS)); }
+    return id;
   } catch(e) { return null; }
 }
-async function sharedSet(key, data) {
+
+async function sharedGet(key) {
+  // D'abord essayer window.storage (Claude.ai)
+  if (typeof window !== "undefined" && window.storage) {
+    try {
+      const r = await window.storage.get(key, true);
+      return r ? JSON.parse(r.value) : null;
+    } catch(e) {}
+  }
+  // Fallback : localStorage
   try {
-    await window.storage.set(key, JSON.stringify(data), true);
+    const val = localStorage.getItem("shared_" + key);
+    return val ? JSON.parse(val) : null;
+  } catch(e) { return null; }
+}
+
+async function sharedSet(key, data) {
+  // D'abord essayer window.storage (Claude.ai)
+  if (typeof window !== "undefined" && window.storage) {
+    try {
+      await window.storage.set(key, JSON.stringify(data), true);
+      return;
+    } catch(e) {}
+  }
+  // Fallback : localStorage
+  try {
+    localStorage.setItem("shared_" + key, JSON.stringify(data));
   } catch(e) {}
 }
 
@@ -2231,7 +2303,6 @@ async function loadSharedPosts() {
   buildPosts();
 }
 
-// ── Sauvegarder posts partagés ───────────────────────────────
 async function saveSharedPosts() {
   await sharedSet("sacrotaga:posts", sharedPosts);
 }
@@ -2245,21 +2316,34 @@ async function loadSharedVideos() {
           .forEach(v => { if (!allVideos.find(x => x._id === v._id)) allVideos.push(v); });
     }
   } catch(e) {}
-  buildGrid(); buildTrending(); buildShorts();
+  buildGrid(); buildTrending();
 }
 
-// ── Sauvegarder vidéos partagées ─────────────────────────────
 async function saveSharedVideos() {
-  // On sauvegarde seulement les infos (pas les blobs)
   const toSave = allVideos.map(v => {
-    const copy = {...v, _local: false};
+    const copy = {...v, _local: false, _localBlob: false};
     delete copy.hasBlobUrl;
     return copy;
   });
   await sharedSet("sacrotaga:videos", toSave);
 }
 
-// ── Polling toutes les 5 secondes pour voir les nouveaux posts ─
+// ── Charger shorts partagés ──────────────────────────────────
+async function loadSharedShorts() {
+  try {
+    const data = await sharedGet("sacrotaga:shorts");
+    if (data && Array.isArray(data)) {
+      data.forEach(s => { if (!allShorts.find(x => x._id === s._id)) allShorts.push(s); });
+    }
+  } catch(e) {}
+  buildShorts();
+}
+
+async function saveSharedShorts() {
+  await sharedSet("sacrotaga:shorts", allShorts);
+}
+
+
 function startRealtime() {
   setInterval(async () => {
     try {
@@ -2280,6 +2364,12 @@ function startRealtime() {
           sorted.forEach(v => allVideos.push(v));
           buildGrid(); buildTrending();
         }
+      }
+      const sdata = await sharedGet("sacrotaga:shorts");
+      if (sdata && Array.isArray(sdata) && sdata.length !== allShorts.length) {
+        allShorts.length = 0;
+        sdata.forEach(s => allShorts.push(s));
+        buildShorts();
       }
     } catch(e) {}
   }, 5000);
@@ -2609,7 +2699,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await restoreSession();
 
   // Charger contenu partagé (tous les utilisateurs)
-  await Promise.all([loadSharedPosts(), loadSharedVideos()]);
+  await Promise.all([loadSharedPosts(), loadSharedVideos(), loadSharedShorts()]);
 
   // Polling pour voir les nouveaux posts en temps réel
   startRealtime();
