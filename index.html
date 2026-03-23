@@ -643,7 +643,7 @@ html.is-desktop #deviceBadge{bottom:12px;}
   <div class="nav-actions">
     <button class="btn btn-ghost" style="display:none" id="mobileSearchBtn" onclick="go('recherche')" title="Rechercher"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></button>
     <button class="btn btn-ghost" onclick="openUpload()">+ Publier</button>
-    <button class="btn" id="notifBtn" style="background:var(--surface2);border:1px solid var(--border);font-size:1.1rem;padding:7px 12px;" onclick="toggleNotifs()" title="Notifications">🔔</button>
+    <button class="btn" id="notifBtn" style="background:var(--surface2);border:1px solid var(--border);font-size:1.1rem;padding:7px 12px;position:relative" onclick="toggleNotifs()" title="Notifications">🔔<span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#f91880;color:white;font-size:0.6rem;font-weight:700;border-radius:50%;width:16px;height:16px;display:none;align-items:center;justify-content:center;font-family:Syne,sans-serif">0</span></button>
     <button class="btn btn-primary" onclick="openLogin()">Se connecter</button>
     <div class="nav-avatar" id="navAvatar" onclick="go('vous')">JD</div>
   </div>
@@ -679,8 +679,11 @@ html.is-desktop #deviceBadge{bottom:12px;}
 
 <!-- NOTIFICATIONS -->
 <div class="notif-box" id="notifBox">
-  <div class="notif-header">Notifications <span style="color:var(--muted);font-size:0.78rem;font-family:'DM Sans'" onclick="markAllRead()" style="cursor:pointer">Tout lire</span></div>
-  <div style="padding:40px;text-align:center;color:var(--muted);font-size:0.85rem">Aucune notification</div>
+  <div class="notif-header">
+    🔔 Activité
+    <span style="color:var(--accent);font-size:0.78rem;font-family:'DM Sans';cursor:pointer;margin-left:auto" onclick="clearActivity()">Effacer</span>
+  </div>
+  <div id="notifList" style="max-height:400px;overflow-y:auto"></div>
 </div>
 
 <div class="layout">
@@ -751,13 +754,15 @@ html.is-desktop #deviceBadge{bottom:12px;}
                 <div class="compose-av" id="composeAvatar">JD</div>
                 <div class="compose-right">
                   <textarea class="compose-input" id="composeText" placeholder="Quoi de neuf ? Partagez avec la communauté..." oninput="updateCompose(this)"></textarea>
+                  <div id="postImagePreview" style="display:none;margin:8px 0;position:relative">
+                    <img id="postImageThumb" style="max-width:100%;max-height:200px;border-radius:10px;object-fit:cover;" src="">
+                    <button onclick="removePostImage()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);color:white;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:0.8rem">✕</button>
+                  </div>
                   <div class="compose-div"></div>
                   <div class="compose-acts">
                     <div class="compose-tools">
-                      <button class="ctool" title="Image" onclick="showToast('🖼️ Glissez une image ici')">🖼️</button>
-                      <button class="ctool" title="GIF" onclick="showToast('🎞️ GIF simulé')">GIF</button>
+                      <label class="ctool" title="Image" style="cursor:pointer">🖼️<input type="file" id="postImageInput" accept="image/*" style="display:none" onchange="attachPostImage(this)"></label>
                       <button class="ctool" title="Emoji" onclick="addEmoji()">😊</button>
-                      <button class="ctool" title="Vidéo" onclick="openUpload()">🎬</button>
                       <button class="ctool" title="Sondage" onclick="addPoll()">📊</button>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px">
@@ -1416,6 +1421,7 @@ function toggleSub(btn) {
     });
     btn.classList.add("subbed");
     btn.textContent = "Abonné ✓";
+    logActivity("subscribe", "🔔", "Tu t'es abonné·e à " + name);
     showToast("🔔 Abonnement activé !");
     // Incrémenter compteur abonnés sur la chaîne
     const vidsByChannel = allVideos.filter(v => v.channel === name);
@@ -1504,8 +1510,10 @@ function unsubChannel(name, btn) {
 
 // ===== HISTORIQUE =====
 function addToHistory(v) {
+  const isNew = !watchHistory.find(h => h.title === v.title);
   watchHistory = watchHistory.filter(h => h.title !== v.title);
   watchHistory.unshift({...v, watchedAt: "maintenant"});
+  if (isNew) logActivity("view", "👁️", "Tu as regardé une vidéo", v.title);
 }
 
 function buildHistorique() {
@@ -1741,9 +1749,11 @@ async function likeVideo(btn) {
     if (liked) {
       likedVideos = likedVideos.filter(v => v.title !== currentVid.title);
       likedVideos.unshift(currentVid);
+      logActivity("like_video", "❤️", "Tu as aimé une vidéo", currentVid.title);
       showToast("❤️ Vidéo ajoutée aux aimées !");
     } else {
       likedVideos = likedVideos.filter(v => v.title !== currentVid.title);
+      logActivity("unlike_video", "💔", "Like retiré", currentVid.title);
       showToast("💔 Retiré des aimées");
     }
     localStorage.setItem("sacrotaga_liked", JSON.stringify(likedVideos));
@@ -1763,6 +1773,7 @@ function togglePlayerSub() {
     followedChannels = followedChannels.filter(c => c.name !== channelName);
     btn.textContent = "🔔 S'abonner";
     btn.classList.remove("liked");
+    logActivity("unsubscribe", "🔕", "Tu t'es désabonné·e de " + channelName);
     showToast("🔕 Désabonné de " + channelName);
   } else {
     followedChannels.push({ name: channelName, avatar: channelName.slice(0,2).toUpperCase(), grad: "linear-gradient(135deg,#6f42c1,#ff4f1f)", followedAt: Date.now() });
@@ -1776,13 +1787,17 @@ function togglePlayerSub() {
 }
 
 function shareVideo() {
+  logActivity("share", "↗️", "Tu as partagé une vidéo", currentVideoTitle);
   if (navigator.clipboard) { navigator.clipboard.writeText(window.location.href); showToast("↗ Lien copié dans le presse-papiers !"); }
   else showToast("↗ Lien copié !");
 }
 
 function saveVideo() {
   const name = prompt("Sauvegarder dans quelle playlist ?", "À regarder plus tard");
-  if (name) { showToast("✅ Sauvegardé dans : " + name); }
+  if (name) {
+    logActivity("save", "📌", "Tu as sauvegardé dans : " + name, currentVideoTitle);
+    showToast("✅ Sauvegardé dans : " + name);
+  }
 }
 
 // ===== COMMENTAIRES =====
@@ -1831,6 +1846,7 @@ async function sendComment() {
   currentComments.unshift(comment);
   renderComments();
   document.getElementById("commentCount").textContent = "(" + currentComments.length + ")";
+  logActivity("comment", "💬", "Tu as commenté", '"' + text.slice(0,40) + (text.length>40?"...":'"'));
   showToast("💬 Commentaire publié !");
   // Sauvegarder partagé
   const key = "sacrotaga:comments:" + encodeURIComponent(currentVideoTitle);
@@ -1983,6 +1999,7 @@ async function publishShort(){
   allShorts.push(newS);
   buildShorts();
   closeUpload();
+  logActivity("publish_short", "⚡", "Tu as publié un Short", title);
   showToast("⚡ Short publié !");
   saveToStorage();
   await saveSharedShorts();
@@ -2013,6 +2030,7 @@ async function publishVideo(){
   saveToStorage();
   // Sauvegarder pour tous les utilisateurs
   await saveSharedVideos();
+  logActivity("publish_video", "🎬", "Tu as publié une vidéo", title);
   showToast("✅ Vidéo enregistrée et visible par tous !");
 }
 
@@ -2029,12 +2047,12 @@ function buildPosts() {
 function makePost(p) {
   const d = document.createElement("div"); d.className = "post-card";
   const avatarContent = p.avatarPhoto ? `<img src="${p.avatarPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : p.avatar;
-  d.innerHTML = `<div class="post-header"><div class="post-av" style="background:${p.avatarColor}" onclick="event.stopPropagation();go('channel','${p.name}')">${avatarContent}</div><div class="post-meta-wrap"><div><span class="post-name">${p.name}</span>${p.verified?'<span class="post-badge">✓</span>':''}</div><div class="post-handle">@${p.handle} · ${p.time}</div></div></div><div class="post-body">${p.body}</div>${p.hasMedia?`<div class="post-media"><div class="post-media-inner" style="background:${p.mediaBg}">${p.mediaEmoji}</div></div>`:""}<div class="post-acts"><button class="pact" onclick="event.stopPropagation();openReply('${p.name}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${p.replies||0}</button><button class="pact" onclick="event.stopPropagation();repostPost(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>${p.reposts||0}</span></button><button class="pact" onclick="event.stopPropagation();likePost(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>${p.likes||0}</span></button><button class="pact" onclick="event.stopPropagation();sharePost('${p.name}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>${p.views||""}</button></div>`;
+  d.innerHTML = `<div class="post-header"><div class="post-av" style="background:${p.avatarColor}" onclick="event.stopPropagation();go('channel','${p.name}')">${avatarContent}</div><div class="post-meta-wrap"><div><span class="post-name">${p.name}</span>${p.verified?'<span class="post-badge">✓</span>':''}</div><div class="post-handle">@${p.handle} · ${p.time}</div></div></div><div class="post-body">${p.body}</div>${p.imageData ? `<div class="post-media"><img src="${p.imageData}" style="width:100%;border-radius:10px;max-height:300px;object-fit:cover;margin-top:8px;"></div>` : p.hasMedia ? `<div class="post-media"><div class="post-media-inner" style="background:${p.mediaBg}">${p.mediaEmoji}</div></div>` : ""}<div class="post-acts"><button class="pact" onclick="event.stopPropagation();openReply('${p.name}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${p.replies||0}</button><button class="pact" onclick="event.stopPropagation();repostPost(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>${p.reposts||0}</span></button><button class="pact" onclick="event.stopPropagation();likePost(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>${p.likes||0}</span></button><button class="pact" onclick="event.stopPropagation();sharePost('${p.name}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>${p.views||""}</button></div>`;
   return d;
 }
 
-function likePost(btn){const s=btn.querySelector("span"),liked=btn.classList.toggle("liked");const n=parseInt(s.textContent)||0;s.textContent=liked?n+1:n-1;btn.style.color=liked?"#f91880":"";if(liked)showToast("❤️ Post aimé !");}
-function repostPost(btn){const s=btn.querySelector("span"),r=btn.classList.toggle("reposted");const n=parseInt(s.textContent)||0;s.textContent=r?n+1:n-1;btn.style.color=r?"#00ba7c":"";if(r)showToast("🔁 Post reposté !");}
+function likePost(btn){const s=btn.querySelector("span"),liked=btn.classList.toggle("liked");const n=parseInt(s.textContent)||0;s.textContent=liked?n+1:n-1;btn.style.color=liked?"#f91880":"";if(liked){logActivity("like_post","❤️","Tu as aimé un post");showToast("❤️ Post aimé !");}else{logActivity("unlike_post","💔","Like de post retiré");}}
+function repostPost(btn){const s=btn.querySelector("span"),r=btn.classList.toggle("reposted");const n=parseInt(s.textContent)||0;s.textContent=r?n+1:n-1;btn.style.color=r?"#00ba7c":"";if(r){logActivity("repost","🔁","Tu as reposté");showToast("🔁 Post reposté !");}else{logActivity("unrepost","🔁","Repost retiré");}}
 async function openReply(name){const t=prompt("Répondre à @"+name+" :");if(t&&t.trim()){const reply={id:Date.now(),timestamp:Date.now(),name:userProfile.name,handle:userProfile.handle,avatar:userProfile.initials,avatarPhoto:userProfile.photoUrl||null,avatarColor:"linear-gradient(135deg,#6f42c1,var(--accent))",verified:false,time:"maintenant",body:"↩️ @"+name+" "+t.trim(),likes:0,replies:0,reposts:0,views:"0",hasMedia:false,isUser:true};sharedPosts.unshift(reply);buildPosts();showToast("💬 Réponse publiée !");await saveSharedPosts();}}
 function sharePost(name){showToast("↗ Lien du post de @"+name+" copié !");}
 
@@ -2047,6 +2065,28 @@ function updateCompose(el){
 
 function addEmoji(){const emojis=["😊","🔥","❤️","🎉","💯","🚀","👏","😂"];const e=emojis[Math.floor(Math.random()*emojis.length)];const ta=document.getElementById("composeText");ta.value+=e;updateCompose(ta);}
 function addPoll(){showToast("📊 Fonctionnalité de sondage simulée");}
+
+let postImageData = null;
+
+function attachPostImage(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  if (!file.type.startsWith("image/")) { showToast("⚠️ Fichier image uniquement"); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    postImageData = e.target.result;
+    document.getElementById("postImageThumb").src = postImageData;
+    document.getElementById("postImagePreview").style.display = "block";
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePostImage() {
+  postImageData = null;
+  document.getElementById("postImagePreview").style.display = "none";
+  document.getElementById("postImageThumb").src = "";
+  document.getElementById("postImageInput").value = "";
+}
 
 async function publishPost(){
   const text=document.getElementById("composeText").value.trim();if(!text)return;
@@ -2062,11 +2102,15 @@ async function publishPost(){
     time: "maintenant",
     body: text.replace(/#(\w+)/g,'<span class="ht">#$1</span>'),
     likes: 0, replies: 0, reposts: 0, views: "0",
-    hasMedia: false, isUser: true
+    hasMedia: !!postImageData,
+    imageData: postImageData || null,
+    isUser: true
   };
   document.getElementById("composeText").value="";
   document.getElementById("charCount").textContent="280";
   document.getElementById("postBtn").disabled=true;
+  removePostImage();
+  logActivity("publish_post", "✏️", "Tu as publié un post", text.slice(0,50));
   showToast("✅ Post publié !");
   // Ajouter dans le tableau partagé et sauvegarder
   sharedPosts.unshift(post);
@@ -2078,12 +2122,100 @@ async function publishPost(){
 function toggleFollow(btn){const f=btn.classList.toggle("following");btn.textContent=f?"Abonné·e":"Suivre";showToast(f?"✅ Abonnement activé !":"Abonnement retiré");}
 
 // ===== NOTIFICATIONS =====
+// ===== SYSTÈME D'ACTIVITÉ =====
+let activityLog = JSON.parse(localStorage.getItem("sacrotaga_activity") || "[]");
+let unreadCount = parseInt(localStorage.getItem("sacrotaga_unread") || "0");
+
+function logActivity(type, icon, text, detail = "") {
+  const entry = { id: Date.now(), type, icon, text, detail, time: new Date().toLocaleTimeString("fr-FR", {hour:"2-digit",minute:"2-digit"}), date: new Date().toLocaleDateString("fr-FR"), read: false };
+  activityLog.unshift(entry);
+  if (activityLog.length > 100) activityLog = activityLog.slice(0, 100);
+  unreadCount++;
+  localStorage.setItem("sacrotaga_activity", JSON.stringify(activityLog));
+  localStorage.setItem("sacrotaga_unread", String(unreadCount));
+  updateNotifBadge();
+  renderActivity();
+}
+
+function updateNotifBadge() {
+  const badge = document.getElementById("notifBadge");
+  if (!badge) return;
+  if (unreadCount > 0) {
+    badge.style.display = "flex";
+    badge.textContent = unreadCount > 99 ? "99+" : unreadCount;
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+function renderActivity() {
+  const list = document.getElementById("notifList");
+  if (!list) return;
+  if (!activityLog.length) {
+    list.innerHTML = `<div style="padding:40px;text-align:center;color:var(--muted);font-size:0.85rem"><div style="font-size:2rem;margin-bottom:10px">🔔</div>Aucune activité pour l'instant</div>`;
+    return;
+  }
+  list.innerHTML = "";
+  // Grouper par date
+  const byDate = {};
+  activityLog.forEach(e => {
+    if (!byDate[e.date]) byDate[e.date] = [];
+    byDate[e.date].push(e);
+  });
+  Object.entries(byDate).forEach(([date, entries]) => {
+    const dateEl = document.createElement("div");
+    dateEl.style.cssText = "padding:6px 16px;font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;background:var(--surface2);border-bottom:1px solid var(--border)";
+    const today = new Date().toLocaleDateString("fr-FR");
+    const yesterday = new Date(Date.now()-86400000).toLocaleDateString("fr-FR");
+    dateEl.textContent = date === today ? "Aujourd'hui" : date === yesterday ? "Hier" : date;
+    list.appendChild(dateEl);
+    entries.forEach(e => {
+      const el = document.createElement("div");
+      el.style.cssText = `display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:default;transition:background 0.15s;${e.read ? "" : "background:rgba(255,79,31,0.06);"}`;
+      el.onmouseenter = () => el.style.background = "var(--surface2)";
+      el.onmouseleave = () => el.style.background = e.read ? "" : "rgba(255,79,31,0.06)";
+      el.innerHTML = `
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,rgba(255,79,31,0.2),rgba(255,140,66,0.2));display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${e.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.83rem;font-weight:600;line-height:1.4">${e.text}</div>
+          ${e.detail ? `<div style="font-size:0.75rem;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.detail}</div>` : ""}
+          <div style="font-size:0.7rem;color:var(--muted);margin-top:3px">${e.time}</div>
+        </div>
+        ${!e.read ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px"></div>` : ""}
+      `;
+      list.appendChild(el);
+    });
+  });
+}
+
+function clearActivity() {
+  activityLog = [];
+  unreadCount = 0;
+  localStorage.setItem("sacrotaga_activity", "[]");
+  localStorage.setItem("sacrotaga_unread", "0");
+  updateNotifBadge();
+  renderActivity();
+  showToast("🗑️ Activité effacée");
+}
+
 function toggleNotifs() {
   const box = document.getElementById("notifBox");
   box.classList.toggle("open");
+  if (box.classList.contains("open")) {
+    // Marquer tout comme lu
+    activityLog.forEach(e => e.read = true);
+    unreadCount = 0;
+    localStorage.setItem("sacrotaga_activity", JSON.stringify(activityLog));
+    localStorage.setItem("sacrotaga_unread", "0");
+    updateNotifBadge();
+    renderActivity();
+  }
 }
-function markAllRead(){document.querySelectorAll(".notif-item.unread").forEach(n=>n.classList.remove("unread"));document.getElementById("notifBox").classList.remove("open");showToast("✅ Toutes les notifications lues");}
-document.addEventListener("click",e=>{const b=document.getElementById("notifBox");if(b.classList.contains("open")&&!b.contains(e.target)&&!e.target.closest(".nav-actions"))b.classList.remove("open");});
+
+document.addEventListener("click", e => {
+  const b = document.getElementById("notifBox");
+  if (b && b.classList.contains("open") && !b.contains(e.target) && !e.target.closest("#notifBtn")) b.classList.remove("open");
+});
 
 // ===== CONNEXION =====
 function openLogin(){document.getElementById("loginModal").classList.add("open");}
@@ -2131,6 +2263,7 @@ async function doRegister() {
   await connectUser(newUser);
   btn.textContent = "Créer mon compte"; btn.disabled = false;
   document.getElementById("loginModal").classList.remove("open");
+  logActivity("register", "🎉", "Bienvenue sur Sacrotaga !", "Compte créé avec succès");
   showToast("🎉 Compte créé ! Bienvenue " + name + " !");
 }
 
@@ -2157,6 +2290,7 @@ async function doLogin() {
   await connectUser(user);
   btn.textContent = "Se connecter"; btn.disabled = false;
   document.getElementById("loginModal").classList.remove("open");
+  logActivity("login", "🔓", "Connexion à ton compte");
   showToast("✅ Bienvenue " + user.name + " !");
 }
 
@@ -2428,7 +2562,9 @@ function handleAvatarSelect(files) {
 
 function refreshMyVideosSection() {
   const count = document.getElementById("myVideoCount");
-  if (count) count.textContent = myVideos.length;
+  const myPostsCount = sharedPosts.filter(p => p.handle === userProfile.handle).length;
+  const myShortsCount = allShorts.filter(s => s.channel === userProfile.name).length;
+  if (count) count.textContent = myVideos.length + myShortsCount + myPostsCount;
   const section = document.getElementById("myVideosSection");
   if (!section) return;
   if (!myVideos.length) {
@@ -2505,48 +2641,110 @@ function saveProfile() {
   refreshMyVideosSection();
 }
 
-// ===== GESTION VIDÉOS =====
+// ===== GESTION CONTENUS (vidéos + shorts + posts) =====
 function buildGestion() {
   const list = document.getElementById("gestionList");
   if (!list) return;
   list.innerHTML = "";
 
-  if (!myVideos.length) {
-    list.innerHTML = `<div class="gestion-empty"><div style="font-size:3rem;margin-bottom:14px">🎬</div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;margin-bottom:8px">Aucune vidéo publiée</div><div style="font-size:0.87rem;margin-bottom:20px">Publiez votre première vidéo pour la gérer ici.</div><button class="btn btn-primary" onclick="openUpload()">+ Publier une vidéo</button></div>`;
+  const myPosts = sharedPosts.filter(p => p.handle === userProfile.handle);
+  const myShortsList = allShorts.filter(s => s.channel === userProfile.name);
+  const total = myVideos.length + myShortsList.length + myPosts.length;
+
+  if (!total) {
+    list.innerHTML = `<div class="gestion-empty"><div style="font-size:3rem;margin-bottom:14px">📦</div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;margin-bottom:8px">Aucun contenu publié</div><div style="font-size:0.87rem;margin-bottom:20px">Publiez votre premier contenu pour le gérer ici.</div><button class="btn btn-primary" onclick="openUpload()">+ Publier</button></div>`;
     return;
   }
 
-  myVideos.forEach((v, i) => {
-    const row = document.createElement("div");
-    row.className = "gestion-row";
-    row.id = `gestion-row-${i}`;
-
-    const thumb = videoThumbnails[v.title] || v.thumbUrl || null;
-    const hasBlobUrl = !!videoBlobUrls[v.title];
-
-    row.innerHTML = `
-      <div class="gestion-thumb" onclick="openEditVideoThumb('${v.title}')">
-        ${thumb
-          ? `<img src="${thumb}" alt="${v.title}">`
-          : `<div class="gestion-thumb-placeholder">${v.emoji}</div>`
-        }
-        <div class="gestion-thumb-overlay"><span>🖼️ Changer</span></div>
-      </div>
-      <div class="gestion-info">
-        <div class="gestion-title" title="${v.title}">${v.title}</div>
-        <div class="gestion-meta">
-          ${v.time} · ${v.views} vue${hasBlobUrl ? ' · <span style="color:var(--accent)">▶ Lisible</span>' : ''}
-          ${thumb ? ' · <span style="color:#20bf6b">🖼️ Miniature</span>' : ''}
+  // Section vidéos
+  if (myVideos.length) {
+    const sec = document.createElement("div");
+    sec.innerHTML = `<div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.82rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:14px 18px;border-bottom:1px solid var(--border);">🎬 Mes vidéos (${myVideos.length})</div>`;
+    list.appendChild(sec);
+    myVideos.forEach((v, i) => {
+      const row = document.createElement("div");
+      row.className = "gestion-row";
+      const thumb = videoThumbnails[v.title] || v.thumbUrl || null;
+      const hasBlobUrl = !!videoBlobUrls[v.title];
+      row.innerHTML = `
+        <div class="gestion-thumb" onclick="openEditVideoThumb('${v.title}')">
+          ${thumb ? `<img src="${thumb}" alt="${v.title}">` : `<div class="gestion-thumb-placeholder">${v.emoji}</div>`}
+          <div class="gestion-thumb-overlay"><span>🖼️ Changer</span></div>
         </div>
-        <div class="gestion-actions">
-          <button class="gestion-btn" onclick="openEditVideo('${v.title}')">✏️ Modifier</button>
-          <button class="gestion-btn" onclick="openEditVideoThumb('${v.title}')">🖼️ Miniature</button>
-          ${hasBlobUrl ? `<button class="gestion-btn" onclick="playVideoFromGestion('${v.title}')">▶ Visionner</button>` : ''}
-          <button class="gestion-btn danger" onclick="deleteVideo('${v.title}')">🗑️ Supprimer</button>
-        </div>
-      </div>`;
-    list.appendChild(row);
-  });
+        <div class="gestion-info">
+          <div class="gestion-title">${v.title}</div>
+          <div class="gestion-meta">${v.time} · ${v.views||0} vues · ❤️ ${v.likes||0} · 💬 ${v.comments||0}${hasBlobUrl ? ' · <span style="color:var(--accent)">▶ Lisible</span>' : ''}</div>
+          <div class="gestion-actions">
+            <button class="gestion-btn" onclick="openEditVideo('${v.title}')">✏️ Modifier</button>
+            ${hasBlobUrl ? `<button class="gestion-btn" onclick="playVideoFromGestion('${v.title}')">▶ Visionner</button>` : ''}
+            <button class="gestion-btn danger" onclick="deleteVideo('${v.title}')">🗑️ Supprimer</button>
+          </div>
+        </div>`;
+      list.appendChild(row);
+    });
+  }
+
+  // Section shorts
+  if (myShortsList.length) {
+    const sec = document.createElement("div");
+    sec.innerHTML = `<div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.82rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:14px 18px;border-bottom:1px solid var(--border);margin-top:10px;">⚡ Mes shorts (${myShortsList.length})</div>`;
+    list.appendChild(sec);
+    myShortsList.forEach(s => {
+      const row = document.createElement("div");
+      row.className = "gestion-row";
+      row.innerHTML = `
+        <div class="gestion-thumb" style="background:linear-gradient(135deg,${s.c1},${s.c2});border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;aspect-ratio:9/16;width:55px;flex-shrink:0">${s.emoji}</div>
+        <div class="gestion-info">
+          <div class="gestion-title">${s.title}</div>
+          <div class="gestion-meta">⚡ Short · ${s.views||0} vues</div>
+          <div class="gestion-actions">
+            <button class="gestion-btn danger" onclick="deleteShort('${s._id}')">🗑️ Supprimer</button>
+          </div>
+        </div>`;
+      list.appendChild(row);
+    });
+  }
+
+  // Section posts
+  if (myPosts.length) {
+    const sec = document.createElement("div");
+    sec.innerHTML = `<div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.82rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:14px 18px;border-bottom:1px solid var(--border);margin-top:10px;">✏️ Mes posts (${myPosts.length})</div>`;
+    list.appendChild(sec);
+    myPosts.forEach(p => {
+      const row = document.createElement("div");
+      row.className = "gestion-row";
+      const preview = p.body.replace(/<[^>]+>/g,"").slice(0,60) + (p.body.length > 60 ? "..." : "");
+      row.innerHTML = `
+        <div style="width:55px;height:55px;border-radius:50%;background:${p.avatarColor};display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:800;font-size:1rem;flex-shrink:0">${p.avatar}</div>
+        <div class="gestion-info">
+          <div class="gestion-title">${preview || "(post sans texte)"}</div>
+          <div class="gestion-meta">${p.time} · ❤️ ${p.likes||0} · 💬 ${p.replies||0}${p.imageData ? ' · 🖼️ Image' : ''}</div>
+          <div class="gestion-actions">
+            <button class="gestion-btn danger" onclick="deletePost(${p.id})">🗑️ Supprimer</button>
+          </div>
+        </div>`;
+      list.appendChild(row);
+    });
+  }
+}
+
+async function deleteShort(id) {
+  if (!confirm("Supprimer ce short ?")) return;
+  const idx = allShorts.findIndex(s => s._id === id);
+  if (idx !== -1) allShorts.splice(idx, 1);
+  buildShorts();
+  buildGestion();
+  showToast("🗑️ Short supprimé");
+  await saveSharedShorts();
+}
+
+async function deletePost(id) {
+  if (!confirm("Supprimer ce post ?")) return;
+  sharedPosts = sharedPosts.filter(p => p.id !== id);
+  buildPosts();
+  buildGestion();
+  showToast("🗑️ Post supprimé");
+  await saveSharedPosts();
 }
 
 function playVideoFromGestion(title) {
@@ -2691,6 +2889,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   buildShorts();
   refreshMyVideosSection();
   initDragDrop();
+  updateNotifBadge();
+  renderActivity();
   // Mettre à jour le compteur d'abonnements
   const fc = document.getElementById("myFollowCount");
   if (fc) fc.textContent = followedChannels.length;
