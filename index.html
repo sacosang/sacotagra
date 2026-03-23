@@ -2342,6 +2342,9 @@ function saveToStorage() {
   try {
     localStorage.setItem("sacrotaga_profile", JSON.stringify(userProfile));
     localStorage.setItem("sacrotaga_playlists", JSON.stringify(userPlaylists));
+    // Sauvegarder myVideos localement (sans blob URLs)
+    const toSave = myVideos.map(v => { const c = {...v}; delete c.hasBlobUrl; return c; });
+    localStorage.setItem("sacrotaga_myVideos", JSON.stringify(toSave));
   } catch(e) {}
 }
 
@@ -2371,6 +2374,8 @@ function loadFromStorage() {
     if (savedProfile) userProfile = JSON.parse(savedProfile);
     const savedPlaylists = localStorage.getItem("sacrotaga_playlists");
     if (savedPlaylists) userPlaylists = JSON.parse(savedPlaylists);
+    const savedMyVideos = localStorage.getItem("sacrotaga_myVideos");
+    if (savedMyVideos) myVideos = JSON.parse(savedMyVideos);
   } catch(e) {}
 }
 
@@ -2698,6 +2703,7 @@ function buildGestion() {
           <div class="gestion-title">${s.title}</div>
           <div class="gestion-meta">⚡ Short · ${s.views||0} vues</div>
           <div class="gestion-actions">
+            <button class="gestion-btn" onclick="editShortTitle('${s._id}')">✏️ Renommer</button>
             <button class="gestion-btn danger" onclick="deleteShort('${s._id}')">🗑️ Supprimer</button>
           </div>
         </div>`;
@@ -2720,6 +2726,7 @@ function buildGestion() {
           <div class="gestion-title">${preview || "(post sans texte)"}</div>
           <div class="gestion-meta">${p.time} · ❤️ ${p.likes||0} · 💬 ${p.replies||0}${p.imageData ? ' · 🖼️ Image' : ''}</div>
           <div class="gestion-actions">
+            <button class="gestion-btn" onclick="go('home');setTimeout(()=>switchTab('posts',document.querySelector('.tab:nth-child(2)')),200)">👁️ Voir</button>
             <button class="gestion-btn danger" onclick="deletePost(${p.id})">🗑️ Supprimer</button>
           </div>
         </div>`;
@@ -2730,11 +2737,20 @@ function buildGestion() {
 
 async function deleteShort(id) {
   if (!confirm("Supprimer ce short ?")) return;
-  const idx = allShorts.findIndex(s => s._id === id);
-  if (idx !== -1) allShorts.splice(idx, 1);
-  buildShorts();
-  buildGestion();
+  allShorts.splice(0, allShorts.length, ...allShorts.filter(s => s._id !== id));
+  buildShorts(); buildGestion();
   showToast("🗑️ Short supprimé");
+  await saveSharedShorts();
+}
+
+async function editShortTitle(id) {
+  const s = allShorts.find(x => x._id === id);
+  if (!s) return;
+  const newTitle = prompt("Nouveau titre du short :", s.title);
+  if (!newTitle || !newTitle.trim()) return;
+  s.title = newTitle.trim();
+  buildShorts(); buildGestion();
+  showToast("✅ Short mis à jour");
   await saveSharedShorts();
 }
 
@@ -2754,20 +2770,18 @@ function playVideoFromGestion(title) {
   playVideo(v.title, v.channel + " · " + v.views + " vues", v.emoji, v.c1, v.c2, blobUrl);
 }
 
-function deleteVideo(title) {
+async function deleteVideo(title) {
   if (!confirm(`Supprimer définitivement "${title}" ?`)) return;
-  const idx = myVideos.findIndex(v => v.title === title);
-  if (idx !== -1) myVideos.splice(idx, 1);
-  const idxAll = allVideos.findIndex(v => v.title === title);
-  if (idxAll !== -1) allVideos.splice(idxAll, 1);
-  // Libérer les blob URLs
+  myVideos = myVideos.filter(v => v.title !== title);
+  allVideos.splice(0, allVideos.length, ...allVideos.filter(v => v.title !== title));
   if (videoBlobUrls[title]) { URL.revokeObjectURL(videoBlobUrls[title]); delete videoBlobUrls[title]; }
-  if (videoThumbnails[title]) { URL.revokeObjectURL(videoThumbnails[title]); delete videoThumbnails[title]; }
+  if (videoThumbnails[title]) { delete videoThumbnails[title]; }
   saveToStorage();
   refreshMyVideosSection();
   buildGrid();
   buildGestion();
   showToast("🗑️ Vidéo supprimée");
+  await saveSharedVideos();
 }
 
 // ===== EDIT VIDEO MODAL =====
@@ -2839,7 +2853,7 @@ function removeEditThumb() {
   document.getElementById("editThumbInput").value = "";
 }
 
-function saveEditVideo() {
+async function saveEditVideo() {
   const originalTitle = document.getElementById("editVideoOriginalTitle").value;
   const newTitle = document.getElementById("editVideoTitle").value.trim();
   if (!newTitle) { showToast("⚠️ Le titre ne peut pas être vide"); return; }
@@ -2847,10 +2861,10 @@ function saveEditVideo() {
   // Mise à jour dans myVideos et allVideos
   [myVideos, allVideos].forEach(arr => {
     const v = arr.find(x => x.title === originalTitle);
-    if (v) v.title = newTitle;
+    if (v) { v.title = newTitle; v.time = "modifié"; }
   });
 
-  // Renommer les clés dans les dicos si le titre a changé
+  // Renommer les clés si le titre a changé
   if (newTitle !== originalTitle) {
     if (videoBlobUrls[originalTitle]) { videoBlobUrls[newTitle] = videoBlobUrls[originalTitle]; delete videoBlobUrls[originalTitle]; }
     if (videoThumbnails[originalTitle]) { videoThumbnails[newTitle] = videoThumbnails[originalTitle]; delete videoThumbnails[originalTitle]; }
@@ -2861,7 +2875,9 @@ function saveEditVideo() {
   buildGrid();
   buildGestion();
   closeEditVideo();
+  logActivity("edit_video", "✏️", "Tu as modifié une vidéo", newTitle);
   showToast("✅ Vidéo mise à jour : " + newTitle);
+  await saveSharedVideos();
 }
 
 function closeEditVideo() {
