@@ -1151,7 +1151,7 @@ html.is-desktop #deviceBadge{bottom:12px;}
 
     <!-- Écran vidéo réelle (fichier local) -->
     <div class="player-screen" id="playerScreen">
-      <video id="realVideo" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none;border-radius:14px;background:#000;" controls></video>
+      <video id="realVideo" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none;border-radius:14px;background:#000;" controls playsinline preload="auto"></video>
       <!-- Écran démo (vidéos prédéfinies) -->
       <div id="demoScreen" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:14px;">
         <div class="pg" id="playerGrad"></div>
@@ -1642,12 +1642,23 @@ function playVideo(title, meta, icon, c1="#1a1a2e", c2="#302b63", blobUrl=null) 
   const demoControls = document.getElementById("demoControls");
 
   if (savedUrl) {
-    // Mode vraie vidéo
+    // Mode vraie vidéo — lecture native complète
     realVideo.src = savedUrl;
     realVideo.style.display = "block";
     demoScreen.style.display = "none";
     demoControls.style.display = "none";
-    realVideo.play().catch(()=>{});
+    realVideo.load();
+    realVideo.oncanplay = () => { realVideo.play().catch(()=>{}); };
+    realVideo.onerror = () => showToast("⚠️ Impossible de lire cette vidéo");
+    // Mettre à jour le titre et meta depuis la vidéo
+    realVideo.onloadedmetadata = () => {
+      const dur = realVideo.duration;
+      if (!isNaN(dur)) {
+        const m = Math.floor(dur/60), s = Math.floor(dur%60);
+        const dStr = m+":"+(s<10?"0":"")+s;
+        document.getElementById("playerMeta").textContent = meta + " · " + dStr;
+      }
+    };
     playing = true;
     clearInterval(progressInterval);
   } else {
@@ -1683,7 +1694,11 @@ function playVideo(title, meta, icon, c1="#1a1a2e", c2="#302b63", blobUrl=null) 
 function closePlayer() {
   const realVideo = document.getElementById("realVideo");
   realVideo.pause();
+  realVideo.oncanplay = null;
+  realVideo.onloadedmetadata = null;
+  realVideo.onerror = null;
   realVideo.src = "";
+  realVideo.load();
   document.getElementById("playerOverlay").classList.remove("open");
   clearInterval(progressInterval);
   playing = false;
@@ -1998,10 +2013,11 @@ async function publishShort(){
   const newS = { _id: Date.now()+"_"+Math.random().toString(36).slice(2), title, views:"0", emoji, c1, c2, channel: userProfile.name, timestamp: Date.now() };
   allShorts.push(newS);
   buildShorts();
+  buildGestion();
   closeUpload();
+  saveToStorage();
   logActivity("publish_short", "⚡", "Tu as publié un Short", title);
   showToast("⚡ Short publié !");
-  saveToStorage();
   await saveSharedShorts();
 }
 
@@ -2025,13 +2041,12 @@ async function publishVideo(){
   myVideos.unshift(newV); allVideos.unshift(newV);
   refreshMyVideosSection();
   buildGrid();
+  buildGestion();
   closeUpload();
-  showToast("✅ Vidéo publiée : " + title);
   saveToStorage();
-  // Sauvegarder pour tous les utilisateurs
-  await saveSharedVideos();
   logActivity("publish_video", "🎬", "Tu as publié une vidéo", title);
-  showToast("✅ Vidéo enregistrée et visible par tous !");
+  showToast("✅ Vidéo publiée et visible par tous !");
+  await saveSharedVideos();
 }
 
 // ===== POSTS =====
@@ -2115,6 +2130,7 @@ async function publishPost(){
   // Ajouter dans le tableau partagé et sauvegarder
   sharedPosts.unshift(post);
   buildPosts();
+  buildGestion();
   saveToStorage();
   await saveSharedPosts();
 }
