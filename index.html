@@ -1313,7 +1313,7 @@ function makeVC(v, idx) {
     addToHistory(v);
   };
   const chI = v.channel.slice(0,2).toUpperCase();
-  const hasReal = !!videoBlobUrls[v.title];
+  const hasReal = !!videoBlobUrls[v.title] || !!v.videoBase64;
   const thumb = videoThumbnails[v.title] || v.thumbUrl || null;
   const bgContent = thumb
     ? `<img src="${thumb}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">`
@@ -1634,8 +1634,9 @@ function playVideo(title, meta, icon, c1="#1a1a2e", c2="#302b63", blobUrl=null) 
   document.getElementById("likeCount").textContent = lk >= 1000 ? (lk/1000).toFixed(1)+" K" : String(lk);
   document.getElementById("playerOverlay").classList.add("open");
 
-  // Chercher un blob URL sauvegardé pour cette vidéo
-  const savedUrl = blobUrl || videoBlobUrls[title];
+  // Chercher la source vidéo : blob local > base64 partagée > rien
+  const vidObj2 = allVideos.find(v => v.title === title) || myVideos.find(v => v.title === title);
+  const savedUrl = blobUrl || videoBlobUrls[title] || (vidObj2 && vidObj2.videoBase64) || null;
 
   const realVideo = document.getElementById("realVideo");
   const demoScreen = document.getElementById("demoScreen");
@@ -2025,27 +2026,67 @@ async function publishVideo(){
   const title = document.getElementById("uploadTitle").value.trim() || (selectedFile ? selectedFile.name.replace(/\.[^.]+$/,"") : "Ma nouvelle vidéo");
   const emojis = ["🎬","🎮","🎵","🍳","📱","✈️","🎨","🔬","⚽","🪵"];
   const emoji = emojis[Math.floor(Math.random()*emojis.length)];
+  const thumbUrl = selectedThumbUrl || null;
 
-  // Créer un blob URL si un fichier vidéo est sélectionné
-  let blobUrl = null;
+  showToast("⏳ Envoi de la vidéo en cours...");
+
+  // Convertir la vidéo en base64 pour partage entre tous les utilisateurs
+  let videoBase64 = null;
+  let duration = "0:00";
   if (selectedFile) {
-    blobUrl = URL.createObjectURL(selectedFile);
-    videoBlobUrls[title] = blobUrl;
+    try {
+      videoBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
+      // Lire la durée réelle
+      duration = await new Promise(resolve => {
+        const tmpVid = document.createElement("video");
+        tmpVid.preload = "metadata";
+        tmpVid.onloadedmetadata = () => {
+          const d = tmpVid.duration;
+          if (!isNaN(d)) {
+            const m = Math.floor(d/60), s = Math.floor(d%60);
+            resolve(m + ":" + (s < 10 ? "0" : "") + s);
+          } else resolve("0:00");
+          URL.revokeObjectURL(tmpVid.src);
+        };
+        tmpVid.onerror = () => resolve("0:00");
+        tmpVid.src = URL.createObjectURL(selectedFile);
+      });
+    } catch(e) { showToast("⚠️ Erreur lecture fichier"); }
   }
 
-  // Stocker la miniature
-  const thumbUrl = selectedThumbUrl || null;
+  const newV = {
+    _id: Date.now()+"_"+Math.random().toString(36).slice(2),
+    title, channel: userProfile.name,
+    channelInitials: userProfile.initials,
+    channelPhoto: userProfile.photoUrl || null,
+    views: "0", likes: 0, comments: 0,
+    time: "maintenant", duration,
+    emoji, c1: "#1a1a2e", c2: "#302b63",
+    thumbUrl, videoBase64,
+    timestamp: Date.now()
+  };
+
+  // Stocker blob local aussi pour lecture immédiate
+  if (selectedFile) {
+    const blobUrl = URL.createObjectURL(selectedFile);
+    videoBlobUrls[title] = blobUrl;
+  }
   if (thumbUrl) videoThumbnails[title] = thumbUrl;
 
-  const newV = {_id: Date.now()+"_"+Math.random().toString(36).slice(2), title, channel:userProfile.name, views:"0", time:"maintenant", duration:"0:00", emoji, c1:"#1a1a2e", c2:"#302b63", hasBlobUrl: !!blobUrl, thumbUrl, timestamp: Date.now(), _localBlob: !!blobUrl};
-  myVideos.unshift(newV); allVideos.unshift(newV);
+  myVideos.unshift(newV);
+  allVideos.unshift(newV);
   refreshMyVideosSection();
   buildGrid();
   buildGestion();
   closeUpload();
   saveToStorage();
   logActivity("publish_video", "🎬", "Tu as publié une vidéo", title);
-  showToast("✅ Vidéo publiée et visible par tous !");
+  showToast("✅ Vidéo publiée ! Visible par tous.");
   await saveSharedVideos();
 }
 
@@ -2468,16 +2509,27 @@ async function loadSharedVideos() {
     const data = await sharedGet("sacrotaga:videos");
     if (data && Array.isArray(data)) {
       data.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
-          .forEach(v => { if (!allVideos.find(x => x._id === v._id)) allVideos.push(v); });
+          .forEach(v => {
+            if (!allVideos.find(x => x._id === v._id)) {
+              allVideos.push(v);
+              // Si c'est ma propre vidéo, ajouter dans myVideos aussi
+              if (v.channel === userProfile.name && !myVideos.find(x => x._id === v._id)) {
+                myVideos.push(v);
+              }
+            }
+          });
     }
   } catch(e) {}
-  buildGrid(); buildTrending();
+  buildGrid(); buildTrending(); refreshMyVideosSection();
 }
 
 async function saveSharedVideos() {
+  // Sauvegarder avec videoBase64 pour partage réel entre utilisateurs
   const toSave = allVideos.map(v => {
-    const copy = {...v, _local: false, _localBlob: false};
+    const copy = {...v};
     delete copy.hasBlobUrl;
+    delete copy._localBlob;
+    delete copy._local;
     return copy;
   });
   await sharedSet("sacrotaga:videos", toSave);
