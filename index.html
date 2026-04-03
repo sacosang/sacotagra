@@ -1258,6 +1258,18 @@ const sampleComments = [];
 let navHistory = ["home"];
 let userPosts = [];
 let likedVideos = JSON.parse(localStorage.getItem("sacrotaga_liked") || "[]");
+// Set des _id de vidéos likées (pour unicité persistante)
+let likedVideoIds = new Set(JSON.parse(localStorage.getItem("sacrotaga_liked_ids") || "[]"));
+
+function saveLikedIds() {
+  localStorage.setItem("sacrotaga_liked_ids", JSON.stringify([...likedVideoIds]));
+}
+
+function isVideoLiked(title) {
+  const vid = allVideos.find(v => v.title === title);
+  if (vid && vid._id) return likedVideoIds.has(vid._id);
+  return likedVideos.some(v => v.title === title);
+}
 let watchHistory = [];
 let myVideos = [];
 let userPlaylists = [
@@ -1309,8 +1321,12 @@ function makeVC(v, idx) {
   const d = document.createElement("div"); d.className = "vc";
   d.onclick = () => {
     const blobUrl = videoBlobUrls[v.title] || null;
+    // Incrémenter les vues
+    v.views = String(parseInt(String(v.views).replace(/[^0-9]/g,"") || 0) + 1);
     playVideo(v.title, v.channel + " · " + v.views + " vues · " + v.time, v.emoji, v.c1, v.c2, blobUrl);
     addToHistory(v);
+    // Sauvegarder les vues
+    setTimeout(() => saveSharedVideos(), 500);
   };
   const chI = v.channel.slice(0,2).toUpperCase();
   const hasReal = !!videoBlobUrls[v.title] || !!v.videoBase64;
@@ -1332,7 +1348,9 @@ function buildGrid() {
     </div>`;
     return;
   }
-  allVideos.slice(0,12).forEach((v,i) => g.appendChild(makeVC(v,i)));
+  // Trier par date (plus récent en premier)
+  [...allVideos].sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
+    .slice(0,20).forEach((v,i) => g.appendChild(makeVC(v,i)));
 }
 
 function buildShorts() {
@@ -1616,7 +1634,12 @@ function playVideo(title, meta, icon, c1="#1a1a2e", c2="#302b63", blobUrl=null) 
   document.getElementById("playerTitle").textContent = title;
   document.getElementById("playerMeta").textContent = meta;
   const likeBtn = document.getElementById("likeBtn");
-  likeBtn.classList.remove("liked");
+  // Restaurer état liked depuis le stockage persistant
+  if (isVideoLiked(title)) {
+    likeBtn.classList.add("liked");
+  } else {
+    likeBtn.classList.remove("liked");
+  }
   // Mettre à jour bouton S'abonner
   setTimeout(() => {
     const psb = document.getElementById("playerSubBtn");
@@ -1634,9 +1657,12 @@ function playVideo(title, meta, icon, c1="#1a1a2e", c2="#302b63", blobUrl=null) 
   document.getElementById("likeCount").textContent = lk >= 1000 ? (lk/1000).toFixed(1)+" K" : String(lk);
   document.getElementById("playerOverlay").classList.add("open");
 
-  // Chercher la source vidéo : blob local > base64 partagée > rien
+  // Source vidéo : blob local > base64 partagée > rien
   const vidObj2 = allVideos.find(v => v.title === title) || myVideos.find(v => v.title === title);
-  const savedUrl = blobUrl || videoBlobUrls[title] || (vidObj2 && vidObj2.videoBase64) || null;
+  let savedUrl = blobUrl || videoBlobUrls[title] || null;
+  if (!savedUrl && vidObj2 && vidObj2.videoBase64) {
+    savedUrl = vidObj2.videoBase64; // base64 directement utilisable comme src
+  }
 
   const realVideo = document.getElementById("realVideo");
   const demoScreen = document.getElementById("demoScreen");
@@ -1644,20 +1670,26 @@ function playVideo(title, meta, icon, c1="#1a1a2e", c2="#302b63", blobUrl=null) 
 
   if (savedUrl) {
     // Mode vraie vidéo — lecture native complète
-    realVideo.src = savedUrl;
     realVideo.style.display = "block";
     demoScreen.style.display = "none";
     demoControls.style.display = "none";
+    realVideo.src = savedUrl;
     realVideo.load();
-    realVideo.oncanplay = () => { realVideo.play().catch(()=>{}); };
-    realVideo.onerror = () => showToast("⚠️ Impossible de lire cette vidéo");
-    // Mettre à jour le titre et meta depuis la vidéo
+    realVideo.oncanplay = () => {
+      realVideo.play().catch(e => console.warn("Lecture auto bloquée:", e));
+    };
+    realVideo.onerror = (e) => {
+      console.error("Erreur vidéo:", e);
+      showToast("⚠️ Impossible de lire cette vidéo");
+      realVideo.style.display = "none";
+      demoScreen.style.display = "flex";
+      demoControls.style.display = "flex";
+    };
     realVideo.onloadedmetadata = () => {
       const dur = realVideo.duration;
       if (!isNaN(dur)) {
         const m = Math.floor(dur/60), s = Math.floor(dur%60);
-        const dStr = m+":"+(s<10?"0":"")+s;
-        document.getElementById("playerMeta").textContent = meta + " · " + dStr;
+        document.getElementById("playerMeta").textContent = meta + " · " + m + ":" + (s<10?"0":"") + s;
       }
     };
     playing = true;
@@ -1754,27 +1786,38 @@ function seekVideo(e, bar) {
 function fmt(s) { return Math.floor(s/60)+":"+(s%60).toString().padStart(2,"0"); }
 
 async function likeVideo(btn) {
-  const liked = btn.classList.toggle("liked");
-  const sp = document.getElementById("likeCount");
-  const n = parseInt(sp.textContent.replace(/[^0-9]/g,"")) || 0;
-  const newCount = liked ? n + 1 : Math.max(0, n - 1);
-  sp.textContent = newCount >= 1000 ? (newCount/1000).toFixed(1)+" K" : String(newCount);
-  const currentVid = allVideos.find(v => v.title === currentVideoTitle);
-  if (currentVid) {
-    currentVid.likes = newCount;
-    if (liked) {
-      likedVideos = likedVideos.filter(v => v.title !== currentVid.title);
-      likedVideos.unshift(currentVid);
-      logActivity("like_video", "❤️", "Tu as aimé une vidéo", currentVid.title);
-      showToast("❤️ Vidéo ajoutée aux aimées !");
-    } else {
-      likedVideos = likedVideos.filter(v => v.title !== currentVid.title);
-      logActivity("unlike_video", "💔", "Like retiré", currentVid.title);
-      showToast("💔 Retiré des aimées");
-    }
-    localStorage.setItem("sacrotaga_liked", JSON.stringify(likedVideos));
-    await saveSharedVideos();
+  const currentVid = allVideos.find(v => v.title === currentVideoTitle)
+                  || myVideos.find(v => v.title === currentVideoTitle);
+  if (!currentVid) return;
+
+  const alreadyLiked = isVideoLiked(currentVideoTitle);
+
+  if (alreadyLiked) {
+    // Retirer le like
+    btn.classList.remove("liked");
+    currentVid.likes = Math.max(0, (currentVid.likes || 1) - 1);
+    likedVideoIds.delete(currentVid._id);
+    likedVideos = likedVideos.filter(v => v.title !== currentVid.title);
+    logActivity("unlike_video", "💔", "Like retiré", currentVid.title);
+    showToast("💔 Retiré des aimées");
+  } else {
+    // Ajouter le like
+    btn.classList.add("liked");
+    currentVid.likes = (currentVid.likes || 0) + 1;
+    if (currentVid._id) likedVideoIds.add(currentVid._id);
+    likedVideos = likedVideos.filter(v => v.title !== currentVid.title);
+    likedVideos.unshift(currentVid);
+    logActivity("like_video", "❤️", "Tu as aimé une vidéo", currentVid.title);
+    showToast("❤️ Vidéo ajoutée aux aimées !");
   }
+
+  const sp = document.getElementById("likeCount");
+  const lk = currentVid.likes || 0;
+  sp.textContent = lk >= 1000 ? (lk/1000).toFixed(1)+" K" : String(lk);
+
+  saveLikedIds();
+  localStorage.setItem("sacrotaga_liked", JSON.stringify(likedVideos));
+  await saveSharedVideos();
 }
 
 function dislikeVideo(btn) { btn.style.color="var(--accent)"; showToast("👎 Merci pour votre retour"); }
@@ -2561,6 +2604,7 @@ function startRealtime() {
         if (JSON.stringify(sorted.map(p=>p.id)) !== JSON.stringify(sharedPosts.map(p=>p.id))) {
           sharedPosts = sorted;
           buildPosts();
+          buildGestion();
         }
       }
       const vdata = await sharedGet("sacrotaga:videos");
