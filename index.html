@@ -117,6 +117,20 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .sg::-webkit-scrollbar{display:none;}
 .sc{flex-shrink:0;width:150px;cursor:pointer;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:var(--surface);transition:all 0.2s;}
 .sc:hover{transform:scale(1.04);border-color:var(--accent);}
+/* Shorts TikTok style */
+.short-slide{scroll-snap-align:start;scroll-snap-stop:always;height:calc(100vh - 36px);width:100%;position:relative;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+.short-slide video{width:100%;height:100%;object-fit:contain;display:block;}
+.short-slide-demo{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:6rem;}
+.short-overlay{position:absolute;inset:0;pointer-events:none;}
+.short-info{position:absolute;bottom:80px;left:12px;right:70px;color:#fff;pointer-events:none;}
+.short-info-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;margin-bottom:4px;text-shadow:0 1px 4px rgba(0,0,0,0.8);}
+.short-info-channel{font-size:0.82rem;opacity:0.85;text-shadow:0 1px 3px rgba(0,0,0,0.7);}
+.short-actions{position:absolute;right:10px;bottom:80px;display:flex;flex-direction:column;gap:18px;align-items:center;}
+.short-action-btn{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;pointer-events:all;}
+.short-action-btn span:first-child{font-size:1.8rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.7));}
+.short-action-btn span:last-child{font-size:0.68rem;color:rgba(255,255,255,0.9);font-weight:600;font-family:'Syne',sans-serif;}
+.short-close{position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.5);border:none;color:white;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;pointer-events:all;}
+#shortsContainer::-webkit-scrollbar{display:none;}
 
 /* TRENDING */
 .tl{display:flex;flex-direction:column;gap:12px;margin-bottom:36px;}
@@ -977,9 +991,9 @@ html.is-desktop #deviceBadge{bottom:12px;}
     </div>
 
     <!-- SHORTS PAGE -->
-    <div class="pv" id="page-shorts">
-      <div class="pg-header"><button class="pg-back" onclick="go('home')">← Accueil</button><div class="pg-title">⚡ Shorts</div></div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px" id="shortsPage"></div>
+    <div class="pv" id="page-shorts" style="padding:0 !important;">
+      <!-- Player Shorts TikTok/YTB style -->
+      <div id="shortsContainer" style="height:calc(100vh - 36px);overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:#000;"></div>
     </div>
 
     <!-- ABONNEMENTS -->
@@ -1409,8 +1423,17 @@ function buildShorts() {
   if (!allShorts.length) return;
   allShorts.forEach(s => {
     const c = document.createElement("div"); c.className = "sc";
-    c.onclick = () => playVideo(s.title, s.views + " vues", s.emoji, s.c1, s.c2);
-    c.innerHTML = `<div style="aspect-ratio:9/16;background:linear-gradient(180deg,${s.c1},${s.c2});display:flex;align-items:center;justify-content:center;font-size:2rem;position:relative"><div style="position:absolute;bottom:8px;left:8px;right:8px"><div style="font-family:Syne,sans-serif;font-weight:700;font-size:0.78rem;color:white">${s.title}</div><div style="color:rgba(255,255,255,0.7);font-size:0.72rem">${s.views} vues</div></div>${s.emoji}</div>`;
+    c.onclick = () => { go("shorts"); setTimeout(buildShortsPage, 50); };
+    const thumb = s.thumbUrl || null;
+    c.innerHTML = `<div style="aspect-ratio:9/16;background:linear-gradient(180deg,${s.c1},${s.c2});display:flex;align-items:center;justify-content:center;font-size:2rem;position:relative;overflow:hidden;">
+      ${thumb ? `<img src="${thumb}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">` : ""}
+      <div style="position:absolute;inset:0;background:linear-gradient(transparent 50%,rgba(0,0,0,0.7));"></div>
+      <div style="position:absolute;bottom:8px;left:8px;right:8px;z-index:1">
+        <div style="font-family:Syne,sans-serif;font-weight:700;font-size:0.75rem;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.8)">${s.title}</div>
+        <div style="color:rgba(255,255,255,0.7);font-size:0.68rem">${s.views||0} vues</div>
+      </div>
+      <span style="position:relative;z-index:1">${s.emoji}</span>
+    </div>`;
     g.appendChild(c);
   });
 }
@@ -1470,37 +1493,27 @@ function isFollowing(name) {
 function toggleSub(btn) {
   const name = btn.dataset.channel || document.getElementById("chName").textContent;
   const already = isFollowing(name);
-
   if (already) {
     followedChannels = followedChannels.filter(c => c.name !== name);
     btn.classList.remove("subbed");
     btn.textContent = "S'abonner";
+    btn.style.background = "";
+    logActivity("unsubscribe","🔕","Désabonné de " + name);
     showToast("🔕 Abonnement retiré");
   } else {
-    // Récupérer infos de la chaîne
-    const ch = channels[name] || {};
     followedChannels.push({
       name,
-      avatar: ch.avatar || name[0].toUpperCase(),
-      grad: ch.grad || "linear-gradient(135deg,#6f42c1,#ff4f1f)",
-      subs: ch.subs || "0",
-      videos: ch.videos || "0",
-      emoji: ch.emoji || "🎬",
+      avatar: name.slice(0,2).toUpperCase(),
+      grad: "linear-gradient(135deg,#6f42c1,#ff4f1f)",
       followedAt: Date.now()
     });
     btn.classList.add("subbed");
-    btn.textContent = "Abonné ✓";
-    logActivity("subscribe", "🔔", "Tu t'es abonné·e à " + name);
+    btn.textContent = "✅ Abonné·e";
+    logActivity("subscribe","🔔","Abonné à " + name);
     showToast("🔔 Abonnement activé !");
-    // Incrémenter compteur abonnés sur la chaîne
-    const vidsByChannel = allVideos.filter(v => v.channel === name);
-    if (vidsByChannel.length) {
-      vidsByChannel.forEach(v => { v.channelSubs = (v.channelSubs || 0) + 1; });
-      saveSharedVideos();
-    }
   }
   saveFollows();
-  // Mettre à jour le compteur profil
+  buildAbonPage();
   const fc = document.getElementById("myFollowCount");
   if (fc) fc.textContent = followedChannels.length;
 }
@@ -1526,14 +1539,131 @@ function buildExplorerVids() {
 
 // ===== SHORTS PAGE =====
 function buildShortsPage() {
-  const g = document.getElementById("shortsPage"); g.innerHTML = "";
-  [...allShorts,...allShorts].forEach(s => {
-    const c = document.createElement("div");
-    c.style.cssText = "border-radius:12px;overflow:hidden;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;";
-    c.onclick = () => playVideo(s.title, s.views+" vues", s.emoji, s.c1, s.c2);
-    c.innerHTML = `<div style="aspect-ratio:9/16;background:linear-gradient(180deg,${s.c1},${s.c2});display:flex;align-items:center;justify-content:center;font-size:3rem;position:relative"><div style="position:absolute;bottom:12px;left:12px;right:12px"><div style="font-family:Syne,sans-serif;font-weight:700;font-size:0.88rem">${s.title}</div><div style="color:rgba(255,255,255,0.7);font-size:0.75rem">${s.views} vues</div></div>${s.emoji}</div>`;
-    g.appendChild(c);
+  const g = document.getElementById("shortsContainer");
+  if (!g) return;
+  g.innerHTML = "";
+
+  if (!allShorts.length) {
+    g.style.background = "#0a0a0f";
+    g.innerHTML = `<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);">
+      <div style="font-size:3rem;margin-bottom:16px">⚡</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:8px">Aucun Short pour l'instant</div>
+      <div style="font-size:0.83rem">Publiez le premier Short !</div>
+      <button onclick="openUpload();document.getElementById('contentType').value='short';updateContentType('short')" style="margin-top:20px;background:var(--accent);border:none;color:white;padding:10px 22px;border-radius:40px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;">+ Créer un Short</button>
+    </div>`;
+    return;
+  }
+
+  allShorts.forEach((s, idx) => {
+    const slide = document.createElement("div");
+    slide.className = "short-slide";
+    slide.id = "short-slide-" + idx;
+
+    // Source vidéo du short si disponible
+    const videoSrc = s.videoBase64 || null;
+
+    slide.innerHTML = `
+      <!-- Bouton fermer -->
+      <button class="short-close" onclick="go('home')" style="pointer-events:all;">✕</button>
+
+      <!-- Vidéo ou démo -->
+      ${videoSrc
+        ? `<video src="${videoSrc}" loop playsinline style="width:100%;height:100%;object-fit:cover;" onclick="this.paused?this.play():this.pause()"></video>`
+        : `<div class="short-slide-demo" style="background:linear-gradient(160deg,${s.c1},${s.c2});width:100%;height:100%;">${s.emoji}</div>`
+      }
+
+      <!-- Gradient bas -->
+      <div style="position:absolute;bottom:0;left:0;right:0;height:50%;background:linear-gradient(transparent,rgba(0,0,0,0.75));pointer-events:none;"></div>
+
+      <!-- Infos chaîne + titre -->
+      <div class="short-info">
+        <div class="short-info-title">${s.title}</div>
+        <div class="short-info-channel">@${(s.channel||"inconnu").toLowerCase().replace(/ /g,"_")}</div>
+      </div>
+
+      <!-- Actions droite -->
+      <div class="short-actions">
+        <div class="short-action-btn" onclick="likeShort(this,'${s._id}')">
+          <span>❤️</span>
+          <span id="short-likes-${s._id}">${s.likes||0}</span>
+        </div>
+        <div class="short-action-btn" onclick="commentShort('${s._id}','${s.title}')">
+          <span>💬</span>
+          <span>${s.comments||0}</span>
+        </div>
+        <div class="short-action-btn" onclick="shareShortUrl('${s.title}')">
+          <span>↗️</span>
+          <span>Partager</span>
+        </div>
+        <div class="short-action-btn" onclick="subFromShort('${s.channel||""}',this)">
+          <span id="short-sub-icon-${s._id}">${isFollowing(s.channel||"") ? "✅" : "➕"}</span>
+          <span>${isFollowing(s.channel||"") ? "Abonné" : "Suivre"}</span>
+        </div>
+      </div>
+    `;
+    g.appendChild(slide);
+
+    // Autoplay le premier short visible
+    if (videoSrc) {
+      const video = slide.querySelector("video");
+      if (idx === 0 && video) {
+        video.play().catch(() => {});
+      }
+    }
   });
+
+  // Intersection Observer pour autoplay au scroll
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const video = entry.target.querySelector("video");
+      if (!video) return;
+      if (entry.isIntersecting) video.play().catch(() => {});
+      else { video.pause(); video.currentTime = 0; }
+    });
+  }, { threshold: 0.7 });
+
+  g.querySelectorAll(".short-slide").forEach(slide => obs.observe(slide));
+}
+
+function likeShort(btn, id) {
+  const s = allShorts.find(x => x._id === id);
+  if (!s) return;
+  const liked = btn.classList.toggle("short-liked");
+  s.likes = Math.max(0, (s.likes||0) + (liked ? 1 : -1));
+  document.getElementById("short-likes-"+id).textContent = s.likes;
+  btn.querySelector("span:first-child").textContent = liked ? "💖" : "❤️";
+  showToast(liked ? "❤️ Short aimé !" : "Like retiré");
+  saveSharedShorts();
+}
+
+function commentShort(id, title) {
+  currentVideoTitle = title;
+  openComments();
+}
+
+function shareShortUrl(title) {
+  logActivity("share","↗️","Short partagé", title);
+  if (navigator.clipboard) navigator.clipboard.writeText(window.location.href);
+  showToast("↗ Lien copié !");
+}
+
+function subFromShort(channel, btn) {
+  if (!channel) return;
+  const icon = btn.querySelector("span:first-child");
+  const label = btn.querySelector("span:last-child");
+  if (isFollowing(channel)) {
+    followedChannels = followedChannels.filter(c => c.name !== channel);
+    icon.textContent = "➕"; label.textContent = "Suivre";
+    showToast("🔕 Désabonné de " + channel);
+  } else {
+    followedChannels.push({ name: channel, avatar: channel.slice(0,2).toUpperCase(), grad: "linear-gradient(135deg,#6f42c1,#ff4f1f)", followedAt: Date.now() });
+    icon.textContent = "✅"; label.textContent = "Abonné";
+    showToast("🔔 Abonné à " + channel + " !");
+  }
+  saveFollows();
+  const fc = document.getElementById("myFollowCount");
+  if (fc) fc.textContent = followedChannels.length;
+  logActivity("subscribe","🔔","Abonnement via Short", channel);
 }
 
 // ===== ABONNEMENTS =====
@@ -2032,27 +2162,43 @@ async function likeVideo(btn) {
   await saveSharedVideos();
 }
 
-function dislikeVideo(btn) { btn.style.color="var(--accent)"; showToast("👎 Merci pour votre retour"); }
+function dislikeVideo(btn) {
+  const active = btn.classList.toggle("disliked");
+  btn.style.background = active ? "var(--surface2)" : "";
+  btn.style.borderColor = active ? "rgba(255,255,255,0.3)" : "";
+  showToast(active ? "👎 Pas aimé" : "Retour retiré");
+}
 
 function togglePlayerSub() {
-  const vid = allVideos.find(v => v.title === currentVideoTitle);
+  const vid = allVideos.find(v => v.title === currentVideoTitle) || myVideos.find(v => v.title === currentVideoTitle);
   const channelName = vid ? vid.channel : null;
-  if (!channelName) return;
+  if (!channelName) { showToast("⚠️ Chaîne introuvable"); return; }
   const btn = document.getElementById("playerSubBtn");
   const already = isFollowing(channelName);
   if (already) {
     followedChannels = followedChannels.filter(c => c.name !== channelName);
     btn.textContent = "🔔 S'abonner";
-    btn.classList.remove("liked");
-    logActivity("unsubscribe", "🔕", "Tu t'es désabonné·e de " + channelName);
+    btn.style.background = "var(--accent)";
+    btn.style.color = "white";
+    btn.style.border = "none";
+    logActivity("unsubscribe","🔕","Désabonné de " + channelName);
     showToast("🔕 Désabonné de " + channelName);
   } else {
-    followedChannels.push({ name: channelName, avatar: channelName.slice(0,2).toUpperCase(), grad: "linear-gradient(135deg,#6f42c1,#ff4f1f)", followedAt: Date.now() });
+    followedChannels.push({
+      name: channelName,
+      avatar: channelName.slice(0,2).toUpperCase(),
+      grad: "linear-gradient(135deg,#6f42c1,#ff4f1f)",
+      followedAt: Date.now()
+    });
     btn.textContent = "✅ Abonné·e";
-    btn.classList.add("liked");
+    btn.style.background = "var(--surface2)";
+    btn.style.color = "var(--text)";
+    btn.style.border = "1px solid var(--border)";
+    logActivity("subscribe","🔔","Abonné à " + channelName);
     showToast("🔔 Abonné à " + channelName + " !");
   }
   saveFollows();
+  buildAbonPage();
   const fc = document.getElementById("myFollowCount");
   if (fc) fc.textContent = followedChannels.length;
 }
