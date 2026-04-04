@@ -1159,94 +1159,75 @@ html.is-desktop #deviceBadge{bottom:12px;}
   </div>
 </div>
 
-<!-- PLAYER YOUTUBE-STYLE -->
+<!-- PLAYER -->
 <div id="playerOverlay" style="display:none;position:fixed;inset:0;z-index:900;background:#000;flex-direction:column;overflow:hidden;">
 
-  <!-- ZONE VIDÉO -->
-  <div id="playerVideoWrap" style="position:relative;width:100%;background:#000;flex-shrink:0;">
+  <!-- VIDEO WRAP -->
+  <div style="position:relative;width:100%;background:#000;flex-shrink:0;">
+    <video id="realVideo" playsinline preload="auto"
+      style="width:100%;max-height:55vw;min-height:200px;display:none;background:#000;cursor:pointer;"
+      onclick="toggleVideoPlay()">
+    </video>
 
-    <!-- Vraie vidéo -->
-    <video id="realVideo" style="width:100%;max-height:60vw;min-height:180px;display:block;background:#000;cursor:pointer;" playsinline preload="auto" onclick="toggleVideoPlay()"></video>
-
-    <!-- Écran démo (sans vidéo) -->
-    <div id="demoScreen" style="display:none;width:100%;height:220px;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
-      <div id="playerGrad" style="position:absolute;inset:0;opacity:0.4;"></div>
-      <div id="playerIcon" style="font-size:4rem;position:relative;z-index:1;">🎬</div>
-      <div style="color:rgba(255,255,255,0.5);font-size:0.82rem;position:relative;z-index:1">Aperçu non disponible</div>
+    <!-- Ecran sans vidéo -->
+    <div id="demoScreen" style="width:100%;height:220px;background:#111;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;">
+      <div id="playerGrad" style="position:absolute;width:100%;height:220px;opacity:0.5;"></div>
+      <div id="playerIcon" style="font-size:5rem;position:relative;">🎬</div>
+      <div style="color:rgba(255,255,255,0.4);font-size:0.78rem;position:relative;">Aucune vidéo</div>
     </div>
 
-    <!-- Bouton fermer -->
-    <button onclick="closePlayer()" style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.7);border:none;color:white;border-radius:50%;width:34px;height:34px;font-size:1rem;cursor:pointer;z-index:20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+    <!-- Fermer -->
+    <button onclick="closePlayer()"
+      style="position:absolute;top:8px;left:8px;z-index:50;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:34px;height:34px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
 
     <!-- Spinner -->
-    <div id="playerSpinner" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);pointer-events:none;z-index:5;">
+    <div id="playerSpinner" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:40;pointer-events:none;">
       <div style="width:44px;height:44px;border:4px solid rgba(255,255,255,0.2);border-top-color:#ff4f1f;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
     </div>
 
-    <!-- Contrôles vidéo (sur la vidéo) -->
-    <div id="videoControls" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.8));padding:8px 10px 6px;z-index:10;">
-      <!-- Barre progression cliquable -->
-      <div id="progressBar" style="height:4px;background:rgba(255,255,255,0.3);cursor:pointer;margin-bottom:8px;position:relative;border-radius:2px;" onmousedown="startSeeking(event)" ontouchstart="startSeeking(event)">
-        <div id="bufferFill" style="position:absolute;top:0;left:0;height:100%;background:rgba(255,255,255,0.2);border-radius:2px;pointer-events:none;"></div>
-        <div id="progressFill" style="position:absolute;top:0;left:0;height:100%;background:#ff4f1f;border-radius:2px;pointer-events:none;width:0%;">
-          <div style="position:absolute;right:-5px;top:-4px;width:12px;height:12px;border-radius:50%;background:#ff4f1f;box-shadow:0 0 4px rgba(255,79,31,0.8);"></div>
+    <!-- Contrôles -->
+    <div id="videoControls" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.85));padding:8px 10px 8px;z-index:30;">
+      <div id="progressBar" style="height:5px;background:rgba(255,255,255,0.25);cursor:pointer;margin-bottom:8px;border-radius:3px;position:relative;"
+        onmousedown="startSeeking(event)" ontouchstart="startSeeking(event)">
+        <div id="bufferFill" style="position:absolute;inset:0;background:rgba(255,255,255,0.15);border-radius:3px;width:0%;pointer-events:none;"></div>
+        <div id="progressFill" style="position:absolute;inset:0;background:#ff4f1f;border-radius:3px;width:0%;pointer-events:none;">
+          <div style="position:absolute;right:-6px;top:-4px;width:13px;height:13px;border-radius:50%;background:#ff4f1f;box-shadow:0 0 6px #ff4f1f;"></div>
         </div>
       </div>
-      <!-- Boutons -->
-      <div style="display:flex;align-items:center;gap:8px;color:white;">
-        <button id="playPauseBtn" onclick="toggleVideoPlay()" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;padding:2px;min-width:30px;line-height:1;">▶</button>
-        <button onclick="skipVideo(-10)" style="background:none;border:none;color:white;font-size:0.75rem;cursor:pointer;padding:2px;white-space:nowrap;">-10s</button>
-        <button onclick="skipVideo(10)" style="background:none;border:none;color:white;font-size:0.75rem;cursor:pointer;padding:2px;white-space:nowrap;">+10s</button>
-        <span id="timeDisplay" style="font-size:0.72rem;color:rgba(255,255,255,0.8);font-family:monospace;flex:1;text-align:center;">0:00 / 0:00</span>
-        <button id="volBtn" onclick="toggleVideoMute()" style="background:none;border:none;color:white;font-size:1rem;cursor:pointer;padding:2px;">🔊</button>
-        <button onclick="toggleFullscreen()" style="background:none;border:none;color:white;font-size:1rem;cursor:pointer;padding:2px;">⛶</button>
+      <div style="display:flex;align-items:center;gap:8px;color:#fff;">
+        <button id="playPauseBtn" onclick="toggleVideoPlay()" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;line-height:1;padding:0;">▶</button>
+        <button onclick="skipVideo(-10)" style="background:none;border:none;color:#fff;font-size:0.78rem;cursor:pointer;">-10s</button>
+        <button onclick="skipVideo(10)" style="background:none;border:none;color:#fff;font-size:0.78rem;cursor:pointer;">+10s</button>
+        <span id="timeDisplay" style="flex:1;text-align:center;font-size:0.72rem;color:rgba(255,255,255,0.8);font-family:monospace;">0:00 / 0:00</span>
+        <button id="volBtn" onclick="toggleVideoMute()" style="background:none;border:none;color:#fff;font-size:1rem;cursor:pointer;">🔊</button>
+        <button onclick="toggleFullscreen()" style="background:none;border:none;color:#fff;font-size:1rem;cursor:pointer;">⛶</button>
       </div>
     </div>
   </div>
 
-  <!-- INFOS SCROLLABLES -->
-  <div style="flex:1;overflow-y:auto;background:#0a0a0f;-webkit-overflow-scrolling:touch;">
-    <div style="padding:14px;">
+  <!-- INFOS -->
+  <div style="flex:1;overflow-y:auto;background:#0a0a0f;-webkit-overflow-scrolling:touch;padding:14px 14px 60px;">
+    <div id="playerTitle" style="font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;color:#fff;line-height:1.35;margin-bottom:4px;"></div>
+    <div id="playerMeta" style="color:var(--muted);font-size:0.78rem;margin-bottom:14px;"></div>
 
-      <!-- Titre -->
-      <div id="playerTitle" style="font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;color:#fff;line-height:1.35;margin-bottom:4px;"></div>
-      <div id="playerMeta" style="color:var(--muted);font-size:0.78rem;margin-bottom:14px;"></div>
-
-      <!-- Actions -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-        <button id="likeBtn" onclick="likeVideo(this)" style="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:40px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;transition:all 0.2s;">
-          👍 <span id="likeCount">0</span>
-        </button>
-        <button onclick="dislikeVideo(this)" style="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:40px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;">
-          👎
-        </button>
-        <button onclick="shareVideo()" style="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:40px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;">
-          ↗ Partager
-        </button>
-        <button onclick="saveVideo()" style="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:40px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;">
-          + Sauvegarder
-        </button>
-        <button onclick="openComments()" style="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:40px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;">
-          💬 Commentaires
-        </button>
-      </div>
-
-      <!-- Chaîne -->
-      <div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:16px;">
-        <div id="playerChannelAv" style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#6f42c1,#ff4f1f);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.85rem;color:white;flex-shrink:0;">?</div>
-        <div style="flex:1;min-width:0;">
-          <div id="playerChannelName" style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;"></div>
-          <div id="playerChannelSubs" style="color:var(--muted);font-size:0.72rem;"></div>
-        </div>
-        <button id="playerSubBtn" onclick="togglePlayerSub()" style="background:var(--accent);border:none;color:white;padding:7px 14px;border-radius:40px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.78rem;white-space:nowrap;flex-shrink:0;">
-          🔔 S'abonner
-        </button>
-      </div>
-
-      <!-- Suggestions -->
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;margin-bottom:10px;color:var(--muted);">À regarder ensuite</div>
-      <div id="playerSuggested"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+      <button id="likeBtn" onclick="likeVideo(this)" style="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:40px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;transition:all 0.2s;">👍 <span id="likeCount">0</span></button>
+      <button onclick="dislikeVideo(this)" style="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:40px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;">👎</button>
+      <button onclick="shareVideo()" style="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:40px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;">↗ Partager</button>
+      <button onclick="openComments()" style="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:40px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;">💬 Commentaires</button>
     </div>
+
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:16px;">
+      <div id="playerChannelAv" style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#6f42c1,#ff4f1f);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.85rem;color:white;flex-shrink:0;">?</div>
+      <div style="flex:1;min-width:0;">
+        <div id="playerChannelName" style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;"></div>
+        <div id="playerChannelSubs" style="color:var(--muted);font-size:0.72rem;"></div>
+      </div>
+      <button id="playerSubBtn" onclick="togglePlayerSub()" style="background:var(--accent);border:none;color:white;padding:7px 16px;border-radius:40px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.78rem;white-space:nowrap;flex-shrink:0;">🔔 S'abonner</button>
+    </div>
+
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;margin-bottom:10px;color:var(--muted);">À regarder ensuite</div>
+    <div id="playerSuggested"></div>
   </div>
 </div>
 
@@ -1818,156 +1799,152 @@ function playVideo(title, meta, icon, c1="#1a1a2e", c2="#302b63", blobUrl=null) 
   overlay.style.display = "flex";
   document.body.style.overflow = "hidden";
 
+  // Chercher l'objet vidéo
+  const vidObj = allVideos.find(v => v.title === title)
+              || myVideos.find(v => v.title === title);
+
   // Textes
   document.getElementById("playerTitle").textContent = title;
-
-  // Trouver la vidéo
-  const vidObj = allVideos.find(v => v.title === title) || myVideos.find(v => v.title === title);
-  const lk = vidObj ? (vidObj.likes || 0) : 0;
   const views = vidObj ? (vidObj.views || "0") : "0";
-  document.getElementById("playerMeta").textContent = (vidObj ? vidObj.channel : "") + " · " + views + " vues";
-  document.getElementById("likeCount").textContent = lk >= 1000 ? (lk/1000).toFixed(1)+" K" : String(lk);
+  const channel = vidObj ? (vidObj.channel || "") : "";
+  document.getElementById("playerMeta").textContent = channel + " · " + views + " vues";
 
-  // État like
+  // Likes
+  const lk = vidObj ? (vidObj.likes || 0) : 0;
+  const likeSpan = document.getElementById("likeCount");
+  if (likeSpan) likeSpan.textContent = lk >= 1000 ? (lk/1000).toFixed(1)+" K" : String(lk);
   const likeBtn = document.getElementById("likeBtn");
-  if (isVideoLiked(title)) {
-    likeBtn.style.background = "#ff4f1f"; likeBtn.style.color = "white"; likeBtn.style.borderColor = "#ff4f1f";
-    likeBtn.classList.add("liked");
-  } else {
-    likeBtn.style.background = ""; likeBtn.style.color = ""; likeBtn.style.borderColor = "";
-    likeBtn.classList.remove("liked");
+  if (likeBtn) {
+    if (isVideoLiked(title)) {
+      likeBtn.style.background = "#ff4f1f";
+      likeBtn.style.color = "white";
+      likeBtn.classList.add("liked");
+    } else {
+      likeBtn.style.background = "";
+      likeBtn.style.color = "";
+      likeBtn.classList.remove("liked");
+    }
   }
 
   // Chaîne
-  const channelName = vidObj ? vidObj.channel : "Inconnu";
-  document.getElementById("playerChannelAv").textContent = channelName.slice(0,2).toUpperCase();
-  document.getElementById("playerChannelName").textContent = channelName;
-  const subCount = followedChannels.filter(c => c.name === channelName).length;
-  document.getElementById("playerChannelSubs").textContent = "Chaîne Sacrotaga";
+  const chAv = document.getElementById("playerChannelAv");
+  const chName = document.getElementById("playerChannelName");
+  const chSubs = document.getElementById("playerChannelSubs");
+  if (chAv) chAv.textContent = channel.slice(0,2).toUpperCase() || "?";
+  if (chName) chName.textContent = channel;
+  if (chSubs) chSubs.textContent = followedChannels.filter(c=>c.name===channel).length > 0 ? "Abonné·e" : "Chaîne Sacrotaga";
 
   // Bouton S'abonner
   const psb = document.getElementById("playerSubBtn");
-  if (isFollowing(channelName)) {
-    psb.textContent = "✅ Abonné·e";
-    psb.style.background = "var(--surface2)";
-    psb.style.color = "var(--text)";
-    psb.style.border = "1px solid var(--border)";
-  } else {
-    psb.textContent = "🔔 S'abonner";
-    psb.style.background = "var(--accent)";
-    psb.style.color = "white";
-    psb.style.border = "none";
+  if (psb) {
+    if (isFollowing(channel)) {
+      psb.textContent = "✅ Abonné·e";
+      psb.style.background = "var(--surface2)";
+      psb.style.color = "var(--text)";
+      psb.style.border = "1px solid var(--border)";
+    } else {
+      psb.textContent = "🔔 S'abonner";
+      psb.style.background = "var(--accent)";
+      psb.style.color = "white";
+      psb.style.border = "none";
+    }
   }
 
   // Suggestions
   const sugg = document.getElementById("playerSuggested");
   if (sugg) {
     sugg.innerHTML = "";
-    allVideos.filter(v => v.title !== title).slice(0, 6).forEach(v => {
+    [...allVideos].filter(v => v.title !== title).slice(0,5).forEach(v => {
       const d = document.createElement("div");
-      d.style.cssText = "display:flex;gap:10px;padding:8px 0;cursor:pointer;border-bottom:1px solid var(--border);";
-      d.onclick = () => playVideo(v.title, "", v.emoji, v.c1, v.c2);
+      d.style.cssText = "display:flex;gap:10px;padding:8px 0;cursor:pointer;border-bottom:1px solid var(--border);align-items:center;";
+      d.onclick = () => playVideo(v.title, "", v.emoji, v.c1, v.c2, v.videoBase64||null);
       const thumb = v.thumbUrl || null;
-      d.innerHTML = `
-        <div style="width:100px;height:56px;border-radius:6px;background:linear-gradient(135deg,${v.c1},${v.c2});flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;overflow:hidden;">
-          ${thumb ? `<img src="${thumb}" style="width:100%;height:100%;object-fit:cover;">` : v.emoji}
-        </div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-family:'Syne',sans-serif;font-weight:600;font-size:0.8rem;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${v.title}</div>
-          <div style="color:var(--muted);font-size:0.72rem;margin-top:3px;">${v.channel} · ${v.views||0} vues</div>
-        </div>`;
+      d.innerHTML = `<div style="width:90px;height:52px;border-radius:6px;background:linear-gradient(135deg,${v.c1},${v.c2});flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem;overflow:hidden;">${thumb ? `<img src="${thumb}" style="width:100%;height:100%;object-fit:cover;">` : v.emoji}</div><div style="flex:1;min-width:0;"><div style="font-family:'Syne',sans-serif;font-weight:600;font-size:0.8rem;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${v.title}</div><div style="color:var(--muted);font-size:0.72rem;margin-top:2px;">${v.channel}</div></div>`;
       sugg.appendChild(d);
     });
   }
 
-  // SOURCE VIDÉO — chercher dans toutes les sources possibles
-  let savedUrl = blobUrl || videoBlobUrls[title] || null;
+  // ── SOURCE VIDÉO ─────────────────────────────────────────
+  // Priorité : blobUrl passé > blob local > base64 de l'objet vidéo > cache localStorage
+  let src = null;
 
-  // Chercher dans allVideos et myVideos par titre ET par _id
-  if (!savedUrl) {
-    const allSources = [...allVideos, ...myVideos];
-    for (const v of allSources) {
-      if (v.title === title && v.videoBase64) {
-        savedUrl = v.videoBase64;
-        break;
-      }
-    }
+  if (blobUrl && blobUrl.startsWith("blob:")) src = blobUrl;
+  else if (videoBlobUrls[title]) src = videoBlobUrls[title];
+  else if (blobUrl && blobUrl.startsWith("data:")) src = blobUrl; // base64 direct
+  else if (vidObj && vidObj.videoBase64) src = vidObj.videoBase64;
+
+  if (!src) {
+    try { src = localStorage.getItem("vid_" + title) || null; } catch(e) {}
   }
-
-  // Dernière chance : chercher dans le stockage partagé local
-  if (!savedUrl) {
-    try {
-      const cached = localStorage.getItem("vid_" + title);
-      if (cached) savedUrl = cached;
-    } catch(e) {}
-  }
-
-  console.log("[Player] title:", title, "| hasUrl:", !!savedUrl, "| vidObj:", !!vidObj, "| hasB64:", !!(vidObj && vidObj.videoBase64));
 
   const realVideo = document.getElementById("realVideo");
   const demoScreen = document.getElementById("demoScreen");
   const spinner = document.getElementById("playerSpinner");
   const ppBtn = document.getElementById("playPauseBtn");
 
-  // Reset
+  // Stopper la vidéo précédente proprement
   realVideo.pause();
-  realVideo.removeAttribute("src");
-  realVideo.load();
+  realVideo.src = "";
 
-  if (savedUrl) {
+  if (src) {
+    // ── Vraie vidéo ────────────────────────────────────────
     demoScreen.style.display = "none";
     realVideo.style.display = "block";
-    spinner.style.display = "flex";
-    ppBtn.textContent = "▶";
+    if (spinner) spinner.style.display = "flex";
+    if (ppBtn) ppBtn.textContent = "▶";
 
-    realVideo.addEventListener("loadedmetadata", function onMeta() {
-      spinner.style.display = "none";
+    // Reset progress
+    const pf = document.getElementById("progressFill");
+    const td = document.getElementById("timeDisplay");
+    if (pf) pf.style.width = "0%";
+    if (td) td.textContent = "0:00 / 0:00";
+
+    realVideo.src = src;
+
+    realVideo.onloadedmetadata = function() {
+      if (spinner) spinner.style.display = "none";
       updateTimeDisplay();
-      realVideo.removeEventListener("loadedmetadata", onMeta);
-    });
-
-    realVideo.addEventListener("canplay", function onCan() {
-      spinner.style.display = "none";
-      realVideo.play().then(() => { ppBtn.textContent = "⏸"; }).catch(() => {});
-      realVideo.removeEventListener("canplay", onCan);
-    });
-
-    realVideo.addEventListener("waiting", function() { spinner.style.display = "flex"; });
-    realVideo.addEventListener("playing", function() { spinner.style.display = "none"; ppBtn.textContent = "⏸"; });
-    realVideo.addEventListener("pause", function() { ppBtn.textContent = "▶"; });
-    realVideo.addEventListener("ended", function() { ppBtn.textContent = "▶"; });
-
-    realVideo.addEventListener("timeupdate", function() {
+    };
+    realVideo.oncanplay = function() {
+      if (spinner) spinner.style.display = "none";
+      realVideo.play().then(() => { if (ppBtn) ppBtn.textContent = "⏸"; }).catch(()=>{});
+    };
+    realVideo.ontimeupdate = function() {
       updateTimeDisplay();
       if (realVideo.duration) {
-        document.getElementById("progressFill").style.width = (realVideo.currentTime / realVideo.duration * 100) + "%";
+        const pct = (realVideo.currentTime / realVideo.duration * 100).toFixed(1);
+        if (pf) pf.style.width = pct + "%";
       }
-    });
-
-    realVideo.addEventListener("progress", function() {
-      if (realVideo.buffered.length > 0 && realVideo.duration) {
-        const pct = realVideo.buffered.end(realVideo.buffered.length-1) / realVideo.duration * 100;
-        document.getElementById("bufferFill").style.width = pct + "%";
+    };
+    realVideo.onprogress = function() {
+      const bf = document.getElementById("bufferFill");
+      if (bf && realVideo.buffered.length && realVideo.duration) {
+        bf.style.width = (realVideo.buffered.end(realVideo.buffered.length-1)/realVideo.duration*100)+"%";
       }
-    });
-
-    realVideo.addEventListener("error", function() {
-      spinner.style.display = "none";
-      showToast("⚠️ Impossible de lire cette vidéo");
-      demoScreen.style.display = "flex";
+    };
+    realVideo.onplaying = function() { if (spinner) spinner.style.display = "none"; if (ppBtn) ppBtn.textContent = "⏸"; };
+    realVideo.onpause   = function() { if (ppBtn) ppBtn.textContent = "▶"; };
+    realVideo.onended   = function() { if (ppBtn) ppBtn.textContent = "▶"; };
+    realVideo.onerror   = function() {
+      if (spinner) spinner.style.display = "none";
+      console.error("Erreur vidéo:", realVideo.error);
+      showToast("⚠️ Erreur lecture — format non supporté ?");
       realVideo.style.display = "none";
-    });
+      demoScreen.style.display = "flex";
+    };
 
-    realVideo.src = savedUrl;
     realVideo.load();
 
   } else {
+    // ── Mode démo (pas de vidéo) ────────────────────────────
     realVideo.style.display = "none";
-    spinner.style.display = "none";
+    if (spinner) spinner.style.display = "none";
     demoScreen.style.display = "flex";
-    document.getElementById("playerGrad").style.background = `linear-gradient(135deg,${c1},${c2})`;
-    document.getElementById("playerIcon").textContent = icon;
-    ppBtn.textContent = "▶";
+    const pg = document.getElementById("playerGrad");
+    if (pg) pg.style.background = `linear-gradient(135deg,${c1},${c2})`;
+    const pi = document.getElementById("playerIcon");
+    if (pi) pi.textContent = icon;
+    if (ppBtn) ppBtn.textContent = "▶";
   }
 
   currentVideoIndex = allVideos.findIndex(v => v.title === title);
@@ -1976,17 +1953,20 @@ function playVideo(title, meta, icon, c1="#1a1a2e", c2="#302b63", blobUrl=null) 
 function closePlayer() {
   const rv = document.getElementById("realVideo");
   rv.pause();
+  rv.onloadedmetadata = null;
+  rv.oncanplay = null;
+  rv.ontimeupdate = null;
+  rv.onprogress = null;
+  rv.onplaying = null;
+  rv.onpause = null;
+  rv.onended = null;
+  rv.onerror = null;
   rv.src = "";
-  rv.load();
-  // Retirer tous les event listeners en clonant l'élément
-  const clone = rv.cloneNode(true);
-  rv.parentNode.replaceChild(clone, clone); // no-op pour reset listeners
-  const overlay = document.getElementById("playerOverlay");
-  overlay.style.display = "none";
+  document.getElementById("playerOverlay").style.display = "none";
   document.body.style.overflow = "";
-  clearInterval(progressInterval);
-  playing = false;
 }
+
+
 
 
 
