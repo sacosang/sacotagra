@@ -118,9 +118,24 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .sc{flex-shrink:0;width:150px;cursor:pointer;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:var(--surface);transition:all 0.2s;}
 .sc:hover{transform:scale(1.04);border-color:var(--accent);}
 /* Shorts TikTok style */
-.short-slide{scroll-snap-align:start;scroll-snap-stop:always;height:calc(100vh - 36px);width:100%;position:relative;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
-.short-slide video{width:100%;height:100%;object-fit:contain;display:block;}
-.short-slide-demo{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:6rem;}
+/* Shorts container */
+#shortsContainer { display:flex; flex-direction:column; align-items:center; }
+.short-slide {
+  scroll-snap-align:start; scroll-snap-stop:always; flex-shrink:0;
+  height:calc(100vh - 36px); width:100%;
+  max-width:420px; /* centré sur desktop */
+  position:relative; background:#000;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+/* Fond de la slide (gradient plein écran) */
+.short-bg {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:7rem;
+}
+.short-slide video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.short-slide-demo { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:6rem; }
 .short-overlay{position:absolute;inset:0;pointer-events:none;}
 .short-info{position:absolute;bottom:80px;left:12px;right:70px;color:#fff;pointer-events:none;}
 .short-info-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;margin-bottom:4px;text-shadow:0 1px 4px rgba(0,0,0,0.8);}
@@ -991,9 +1006,8 @@ html.is-desktop #deviceBadge{bottom:12px;}
     </div>
 
     <!-- SHORTS PAGE -->
-    <div class="pv" id="page-shorts" style="padding:0 !important;">
-      <!-- Player Shorts TikTok/YTB style -->
-      <div id="shortsContainer" style="height:calc(100vh - 36px);overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:#000;"></div>
+    <div class="pv" id="page-shorts" style="padding:0 !important;background:#000;">
+      <div id="shortsContainer" style="height:calc(100vh - 36px);overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:#000;display:flex;flex-direction:column;align-items:center;"></div>
     </div>
 
     <!-- ABONNEMENTS -->
@@ -1543,42 +1557,41 @@ function buildShortsPage() {
     // Source vidéo du short si disponible
     const videoSrc = s.videoBase64 || null;
 
+    const handle = "@" + (s.channel||"inconnu").toLowerCase().replace(/ /g,"_");
+    const isSubbed = isFollowing(s.channel||"");
     slide.innerHTML = `
-      <!-- Bouton fermer -->
-      <button class="short-close" onclick="go('home')" style="pointer-events:all;">✕</button>
-
-      <!-- Vidéo ou démo -->
-      ${videoSrc
-        ? `<video src="${videoSrc}" loop playsinline style="width:100%;height:100%;object-fit:cover;" onclick="this.paused?this.play():this.pause()"></video>`
-        : `<div class="short-slide-demo" style="background:linear-gradient(160deg,${s.c1},${s.c2});width:100%;height:100%;">${s.emoji}</div>`
-      }
-
-      <!-- Gradient bas -->
-      <div style="position:absolute;bottom:0;left:0;right:0;height:50%;background:linear-gradient(transparent,rgba(0,0,0,0.75));pointer-events:none;"></div>
-
-      <!-- Infos chaîne + titre -->
-      <div class="short-info">
-        <div class="short-info-title">${s.title}</div>
-        <div class="short-info-channel">@${(s.channel||"inconnu").toLowerCase().replace(/ /g,"_")}</div>
+      <div style="position:absolute;inset:0;background:linear-gradient(160deg,${s.c1||'#1a1a2e'},${s.c2||'#302b63'});display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:9rem;opacity:0.15;">${s.emoji||'🎬'}</span>
       </div>
-
-      <!-- Actions droite -->
-      <div class="short-actions">
+      ${videoSrc ? `<video src="${videoSrc}" loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;" onclick="this.muted=false;this.paused?this.play():this.pause()"></video>` : ""}
+      <div style="position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(transparent,rgba(0,0,0,0.9));z-index:3;pointer-events:none;"></div>
+      <button onclick="go('home')" style="position:absolute;top:10px;left:10px;z-index:10;background:rgba(0,0,0,0.55);border:none;color:white;border-radius:50%;width:34px;height:34px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      <div class="short-info" style="z-index:5;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6f42c1,#ff4f1f);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.7rem;color:white;">${(s.channel||'?').slice(0,2).toUpperCase()}</div>
+          <span style="font-size:0.82rem;color:white;font-weight:700;">${s.channel||''}</span>
+        </div>
+        <div class="short-info-title">${s.title}</div>
+        <div class="short-info-channel">${handle}</div>
+      </div>
+      <div class="short-actions" style="z-index:5;">
         <div class="short-action-btn" onclick="likeShort(this,'${s._id}')">
-          <span>❤️</span>
+          <span id="short-like-icon-${s._id}" style="font-size:2rem;">🤍</span>
           <span id="short-likes-${s._id}">${s.likes||0}</span>
         </div>
         <div class="short-action-btn" onclick="commentShort('${s._id}','${s.title}')">
-          <span>💬</span>
+          <span style="font-size:2rem;">💬</span>
           <span>${s.comments||0}</span>
         </div>
         <div class="short-action-btn" onclick="shareShortUrl('${s.title}')">
-          <span>↗️</span>
+          <span style="font-size:2rem;">↗️</span>
           <span>Partager</span>
         </div>
-        <div class="short-action-btn" onclick="subFromShort('${s.channel||""}',this)">
-          <span id="short-sub-icon-${s._id}">${isFollowing(s.channel||"") ? "✅" : "➕"}</span>
-          <span>${isFollowing(s.channel||"") ? "Abonné" : "Suivre"}</span>
+        <div class="short-action-btn" id="short-sub-btn-${s._id}" onclick="subFromShort(this)"  data-channel="${s.channel||''}" data-id="${s._id}">
+          <div style="width:36px;height:36px;border-radius:50%;border:2.5px solid white;display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:${isSubbed?'var(--accent)':'rgba(0,0,0,0.4)'};">
+            ${isSubbed ? '✓' : '+'}
+          </div>
+          <span>${isSubbed ? 'Abonné' : 'Suivre'}</span>
         </div>
       </div>
     `;
@@ -1628,23 +1641,27 @@ function shareShortUrl(title) {
   showToast("↗ Lien copié !");
 }
 
-function subFromShort(channel, btn) {
+function subFromShort(btn) {
+  const channel = btn.dataset.channel || "";
   if (!channel) return;
-  const icon = btn.querySelector("span:first-child");
+  const circle = btn.querySelector("div");
   const label = btn.querySelector("span:last-child");
   if (isFollowing(channel)) {
     followedChannels = followedChannels.filter(c => c.name !== channel);
-    icon.textContent = "➕"; label.textContent = "Suivre";
+    if (circle) { circle.textContent = "+"; circle.style.background = "rgba(0,0,0,0.4)"; }
+    if (label) label.textContent = "Suivre";
     showToast("🔕 Désabonné de " + channel);
   } else {
     followedChannels.push({ name: channel, avatar: channel.slice(0,2).toUpperCase(), grad: "linear-gradient(135deg,#6f42c1,#ff4f1f)", followedAt: Date.now() });
-    icon.textContent = "✅"; label.textContent = "Abonné";
+    if (circle) { circle.textContent = "✓"; circle.style.background = "var(--accent)"; }
+    if (label) label.textContent = "Abonné";
     showToast("🔔 Abonné à " + channel + " !");
+    logActivity("subscribe","🔔","Abonnement via Short", channel);
   }
   saveFollows();
+  buildAbonPage();
   const fc = document.getElementById("myFollowCount");
   if (fc) fc.textContent = followedChannels.length;
-  logActivity("subscribe","🔔","Abonnement via Short", channel);
 }
 
 // ===== ABONNEMENTS =====
