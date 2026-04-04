@@ -1371,12 +1371,12 @@ function switchTab(tab, el) {
 function makeVC(v, idx) {
   const d = document.createElement("div"); d.className = "vc";
   d.onclick = () => {
-    const blobUrl = videoBlobUrls[v.title] || null;
     // Incrémenter les vues
     v.views = String(parseInt(String(v.views).replace(/[^0-9]/g,"") || 0) + 1);
+    // Source : blob local > base64 stockée > null
+    const blobUrl = videoBlobUrls[v.title] || v.videoBase64 || null;
     playVideo(v.title, v.channel + " · " + v.views + " vues · " + v.time, v.emoji, v.c1, v.c2, blobUrl);
     addToHistory(v);
-    // Sauvegarder les vues
     setTimeout(() => saveSharedVideos(), 500);
   };
   const chI = v.channel.slice(0,2).toUpperCase();
@@ -1750,9 +1750,29 @@ function playVideo(title, meta, icon, c1="#1a1a2e", c2="#302b63", blobUrl=null) 
     });
   }
 
-  // SOURCE VIDÉO
+  // SOURCE VIDÉO — chercher dans toutes les sources possibles
   let savedUrl = blobUrl || videoBlobUrls[title] || null;
-  if (!savedUrl && vidObj && vidObj.videoBase64) savedUrl = vidObj.videoBase64;
+
+  // Chercher dans allVideos et myVideos par titre ET par _id
+  if (!savedUrl) {
+    const allSources = [...allVideos, ...myVideos];
+    for (const v of allSources) {
+      if (v.title === title && v.videoBase64) {
+        savedUrl = v.videoBase64;
+        break;
+      }
+    }
+  }
+
+  // Dernière chance : chercher dans le stockage partagé local
+  if (!savedUrl) {
+    try {
+      const cached = localStorage.getItem("vid_" + title);
+      if (cached) savedUrl = cached;
+    } catch(e) {}
+  }
+
+  console.log("[Player] title:", title, "| hasUrl:", !!savedUrl, "| vidObj:", !!vidObj, "| hasB64:", !!(vidObj && vidObj.videoBase64));
 
   const realVideo = document.getElementById("realVideo");
   const demoScreen = document.getElementById("demoScreen");
@@ -2306,12 +2326,17 @@ async function publishVideo(){
     timestamp: Date.now()
   };
 
-  // Stocker blob local aussi pour lecture immédiate
+  // Stocker blob local aussi pour lecture immédiate sur cet appareil
   if (selectedFile) {
     const blobUrl = URL.createObjectURL(selectedFile);
     videoBlobUrls[title] = blobUrl;
   }
   if (thumbUrl) videoThumbnails[title] = thumbUrl;
+
+  // Mettre en cache local le base64 (pour retrouver même après rechargement)
+  if (videoBase64) {
+    try { localStorage.setItem("vid_" + title, videoBase64); } catch(e) {}
+  }
 
   myVideos.unshift(newV);
   allVideos.unshift(newV);
@@ -2747,10 +2772,17 @@ async function loadSharedVideos() {
           .forEach(v => {
             if (!allVideos.find(x => x._id === v._id)) {
               allVideos.push(v);
-              // Si c'est ma propre vidéo, ajouter dans myVideos aussi
-              if (v.channel === userProfile.name && !myVideos.find(x => x._id === v._id)) {
-                myVideos.push(v);
-              }
+            }
+            // Si c'est ma propre vidéo, ajouter dans myVideos aussi
+            if (v.channel === userProfile.name && !myVideos.find(x => x._id === v._id)) {
+              myVideos.push(v);
+            }
+            // Restaurer le cache base64 local si disponible
+            if (!v.videoBase64) {
+              try {
+                const cached = localStorage.getItem("vid_" + v.title);
+                if (cached) v.videoBase64 = cached;
+              } catch(e) {}
             }
           });
     }
